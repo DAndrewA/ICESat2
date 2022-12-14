@@ -71,10 +71,10 @@ def _check_file_exists(dir_path, filename):
         filename [string]: name of the file for which we are checking the existence of.
         
     OUTPUTS:
-        exists [boolean]: True if the file exists, flase if not
+        exists [boolean]: True if the file exists, false if not
     '''
     path = os.path.join(dir_path,filename)
-    exists = os.path.isfile(path),path
+    exists = os.path.isfile(path)
     return exists
 
 
