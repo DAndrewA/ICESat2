@@ -59,7 +59,7 @@ def find_files_in_date_range(initial, daterange, filename_format, depth='d'):
             d = d + dt
     finally:
         os.chdir(cwd)    
-    return tuple(filenames)
+    return sorted(tuple(filenames))
 
 
 

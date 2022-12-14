@@ -16,8 +16,8 @@ mmcr_loc = ['mmcr','mom']
 path_mpl = os.path.join(path_icecaps,*mpl_loc)
 path_mmcr = os.path.join(path_icecaps,*mmcr_loc)
 
-mpl_format = '%Y%m%d*.mpl.gz'
-mmcr_format = '%Y%j*.nc.zip' # uses the julian day
+mpl_format = '%Y%m%d%H*.mpl.gz'
+mmcr_format = '%Y%j%H*.nc.zip' # uses the julian day
 
 print(path_mpl, path_mmcr)
 
@@ -33,8 +33,8 @@ print(f'Given date range: {dtrange[0].strftime(dt_printFomrat)} to {dtrange[1].s
 print('')
 print('Getting the MPL and MMCR files in the desired range:')
 
-mpl_files = move_data_files.find_files_in_date_range(path_mpl,dtrange,mpl_format)
-mmcr_files = move_data_files.find_files_in_date_range(path_mmcr,dtrange,mmcr_format)
+mpl_files = move_data_files.find_files_in_date_range(path_mpl,dtrange,mpl_format,'h')
+mmcr_files = move_data_files.find_files_in_date_range(path_mmcr,dtrange,mmcr_format,'h')
 
 def print_summary(obj,descriptor):
     print('______________________')
@@ -44,3 +44,5 @@ def print_summary(obj,descriptor):
 
 print_summary(mpl_files,'MPL files')
 print_summary(mmcr_files, 'MMCR files')
+
+print_summary(sorted(mmcr_files), 'Sorted MMCR files')
