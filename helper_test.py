@@ -1,5 +1,4 @@
 import helper as hh
-import move_data_files
 import datetime
 import os
 
@@ -33,8 +32,9 @@ print(f'Given date range: {dtrange[0].strftime(dt_printFomrat)} to {dtrange[1].s
 print('')
 print('Getting the MPL and MMCR files in the desired range:')
 
-mpl_files = move_data_files.find_files_in_date_range(path_mpl,dtrange,mpl_format,'h')
-mmcr_files = move_data_files.find_files_in_date_range(path_mmcr,dtrange,mmcr_format,'h')
+mpl_files = hh.move_data_files.find_files_in_date_range(path_mpl,dtrange,mpl_format,'h')
+mmcr_files = hh.move_data_files.find_files_in_date_range(path_mmcr,dtrange,mmcr_format,'h')
+
 
 def print_summary(obj,descriptor):
     print('______________________')
