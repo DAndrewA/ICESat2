@@ -1,6 +1,7 @@
 import os
 import h5py as h5
 import xarray as xr
+import numpy as np
 import icepyx as ipx
 
 def load_xarray_from_ATL09(filename,subsetVariables=None):
@@ -18,7 +19,19 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
 
     At the end, I will return both the high-frequency and low-frequency datasets. These could then possibly be conjoined afterwards along the time axis, although I'm unsure if thats a good idea or not...
     '''
-    pass
+    ds = xr.Dataset()
+    with h5.File(filename,'r') as f:
+        # start by extracting the coordinate dimensions: profile, time, height and layer
+        profile = [1,2,3]
+        time = f['profile_1']['bckgrd_atlas']['delta_time'][()]
+        height = f['profile_1']['high_rate']['ds_va_bin_h'][()]
+        layer = np.arange(1,11)
+
+        # add these to the dataset object
+        ds = ds.assign_coords({'profile':profile, 'time':time, 'height':height, 'layer':layer})
+        print(ds.dims)
+
+
 
 def load_xarray_from_ATL09_icepyx(filename, pattern=None, wanted_vars=None):
     '''Function to load in ATL09 datafiles to xarray format, utilising the icepyx.Read object.
@@ -45,3 +58,7 @@ def load_xarray_from_ATL09_icepyx(filename, pattern=None, wanted_vars=None):
 
     ds = reader.load()
     return ds
+
+
+fname = '/home/users/eeasm/ICESAT_data/RGT0749_Cycles_10-12-bigger/processed_ATL09_20210211004659_07491001_005_01.h5'
+load_xarray_from_ATL09(fname)
