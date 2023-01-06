@@ -23,31 +23,53 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
     with h5.File(filename,'r') as f:
         # start by extracting the coordinate dimensions: profile, time, height and layer
         profile = np.array([1,2,3])
-        time = f['profile_1']['high_rate']['delta_time'][()] # NEED TO IMPLEMENT POSSIBILITY FOR delta_time TO DIFFER BETWEEN PROFILES:
         height = f['profile_1']['high_rate']['ds_va_bin_h'][()]
         layer = np.arange(10)
         surface_type = np.arange(5)
 
+        # delta_time differs between profiles. As such, we need to find the length of the time dimensions and pick the longest one
+        time_lengths = np.zeros((3,))
+        for p in profile:
+            time_lengths[p-1] = int(f[f"profile_{p}"]['high_rate']['delta_time'].size)
+        time_index = np.arange(np.max(time_lengths))
+
         # add these to the dataset object
-        coords = {'profile':profile, 'time':time, 'height':height, 'layer':layer, 'surface type':surface_type}
+        coords = {'profile':profile, 'time index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
         ds = ds.assign_coords(coords)
         print(ds.dims)
 
         # ASSUMES NONE OF THE COORDINATES HAVE THE SAME SIZE: REQUIRE THAT time!=700 AND ALL WILL BE FINE... 
         dim_lengths = {v.size: k for k,v in coords.items()}
-        # for each variable in the profile_[n]/high_rate/ part of the file, we need to create an xr DataArray to hold its information for all 3 profiles, with the other required dimensions included.
+        for l in time_lengths: # include the additional time lengths for the labelling of coordinates in the DataArrays.
+            dim_lengths[l] = 'time index'
+
+        max_time_length = int(np.max(time_lengths))
+        # for each variable in the profile_[n]/high_rate/ part of the file, we need to create an xr.DataArray to hold its information for all 3 profiles, with the other required dimensions included.
         for k in f['profile_1']['high_rate'].keys():
-            shape_inprofile = f['profile_1']['high_rate'][k].shape
+            # determine the shape the values need to take on
+            shape_inprofile = list(f['profile_1']['high_rate'][k].shape)
+            # generate the list of axis names for the values
+            axis_names = [dim_lengths[v] for v in shape_inprofile]
+            # if 'time index' is in axis_names, we need to ensure that length is set to max_time_length
+            if 'time index' in axis_names:
+                shape_inprofile[0] = max_time_length
             vals = np.zeros(shape=(3,*shape_inprofile))
 
             # populate vals with the values from the three profiles
-            print(f'{k}: target shape={vals.shape}: profile shape={f["profile_1"]["high_rate"][k].shape}')
-            print(f'target shape={vals[0,...].shape}; profile shape={f["profile_1"]["high_rate"][k][()].shape}')
             for p in profile:
-                print(f'{p}...')
-                vals[p-1,...] = f['profile_' + str(p)]['high_rate'][k][()]
+                # if time_index is being used, we need to know how many NaNs we need to pad the data with:
+                insert_vals = f['profile_' + str(p)]['high_rate'][k][()]
+                if 'time index' in axis_names:
+                    padding_length = int(max_time_length - time_lengths[p-1])
+                    if padding_length:
+                        padding_shape = [int(v) for v in insert_vals.shape]
+                        padding_shape[0] = padding_length
+                        padding_nan = np.empty(padding_shape) * np.nan
+                        insert_vals = np.concatenate((insert_vals,padding_nan))
 
-            # generate the list of axis names for vals
+                vals[p-1,...] = insert_vals
+
+            # regenerate the list of axis names for vals
             axis_names = [dim_lengths[v] for v in vals.shape]
             print(f'{k}: {shape_inprofile}: {axis_names}')
 
