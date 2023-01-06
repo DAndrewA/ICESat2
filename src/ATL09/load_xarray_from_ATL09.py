@@ -31,7 +31,7 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
         time_lengths = np.zeros((3,))
         for p in profile:
             time_lengths[p-1] = int(f[f"profile_{p}"]['high_rate']['delta_time'].size)
-        time_index = np.arange(np.max(time_lengths))
+        time_index = np.arange(np.max(time_lengths)).astype(int)
 
         # add these to the dataset object
         coords = {'profile':profile, 'time index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
@@ -71,13 +71,16 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
 
             # regenerate the list of axis names for vals
             axis_names = [dim_lengths[v] for v in vals.shape]
-            print(f'{k}: {shape_inprofile}: {axis_names}')
+            print(f'{k} | {vals.shape}: {axis_names}')
 
             # generate attributes for the xarray DataArray
-            attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs}
+            attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs.items()}
+
+            # need to subset the coordinates based on which are present in vals
+            da_coords = {v: coords[v] for v in axis_names}
 
             # create the DataArray and append it to the Dataset
-            da = xr.DataArray(vals,coords=coords, dims=axis_names, attrs=attrs)
+            da = xr.DataArray(vals,coords=da_coords, dims=axis_names, attrs=attrs)
             ds[k] = da
 
         return ds
