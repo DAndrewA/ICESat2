@@ -34,14 +34,14 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
         time_index = np.arange(np.max(time_lengths)).astype(int)
 
         # add these to the dataset object
-        coords = {'profile':profile, 'time index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
+        coords = {'profile':profile, 'time_index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
         ds = ds.assign_coords(coords)
         print(ds.dims)
 
         # ASSUMES NONE OF THE COORDINATES HAVE THE SAME SIZE: REQUIRE THAT time!=700 AND ALL WILL BE FINE... 
         dim_lengths = {v.size: k for k,v in coords.items()}
         for l in time_lengths: # include the additional time lengths for the labelling of coordinates in the DataArrays.
-            dim_lengths[l] = 'time index'
+            dim_lengths[l] = 'time_index'
 
         max_time_length = int(np.max(time_lengths))
         # for each variable in the profile_[n]/high_rate/ part of the file, we need to create an xr.DataArray to hold its information for all 3 profiles, with the other required dimensions included.
@@ -51,7 +51,7 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
             # generate the list of axis names for the values
             axis_names = [dim_lengths[v] for v in shape_inprofile]
             # if 'time index' is in axis_names, we need to ensure that length is set to max_time_length
-            if 'time index' in axis_names:
+            if 'time_index' in axis_names:
                 shape_inprofile[0] = max_time_length
             vals = np.zeros(shape=(3,*shape_inprofile))
 
@@ -59,7 +59,7 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
             for p in profile:
                 # if time_index is being used, we need to know how many NaNs we need to pad the data with:
                 insert_vals = f['profile_' + str(p)]['high_rate'][k][()]
-                if 'time index' in axis_names:
+                if 'time_index' in axis_names:
                     padding_length = int(max_time_length - time_lengths[p-1])
                     if padding_length:
                         padding_shape = [int(v) for v in insert_vals.shape]
