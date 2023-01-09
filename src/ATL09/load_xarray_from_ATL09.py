@@ -113,7 +113,9 @@ def load_xarray_from_ATL09_icepyx(filename, pattern=None, wanted_vars=None):
     return ds
 
 
+'''Example code
 fname = '/home/users/eeasm/ICESAT_data/RGT0749_Cycles_10-12-bigger/processed_ATL09_20210211004659_07491001_005_01.h5'
 ds = load_xarray_from_ATL09(fname)
 
 print(ds)
+'''
