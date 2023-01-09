@@ -19,6 +19,10 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
 
     At the end, I will return both the high-frequency and low-frequency datasets. These could then possibly be conjoined afterwards along the time axis, although I'm unsure if thats a good idea or not...
     '''
+
+    subset_default = ('cab_prof','delta_time','density_pass1','density_pass2','ds_va_bin_h','latitude','longitude','prof_dist_x','prof_dist_y','range_to_top','surface_bin','surface_h_dens','surface_height','surface_width')
+    subset_clouds = ('apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag') # TODO introduce functionality for subsetting variables
+
     ds = xr.Dataset()
     with h5.File(filename,'r') as f:
         # start by extracting the coordinate dimensions: profile, time, height and layer
@@ -46,6 +50,11 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
         max_time_length = int(np.max(time_lengths))
         # for each variable in the profile_[n]/high_rate/ part of the file, we need to create an xr.DataArray to hold its information for all 3 profiles, with the other required dimensions included.
         for k in f['profile_1']['high_rate'].keys():
+            # if subsetting of variables is being used, only include desired variables.
+            if subsetVariables is not None:
+                if k not in subsetVariables:
+                    continue
+            
             # determine the shape the values need to take on
             shape_inprofile = list(f['profile_1']['high_rate'][k].shape)
             # generate the list of axis names for the values
