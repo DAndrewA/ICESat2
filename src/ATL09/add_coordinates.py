@@ -16,7 +16,10 @@ def add_coordinates(ds):
     OUTPUTS:
         ds [xr.Dataset]: ATL09 xarray Dataset with the newly added coordinates
     '''
-    raise NotImplementedError
+    # sequentially add all additional coordinates
+    ds = _add_d2s(ds)
+    ds = _add_height_AGL(ds)
+    return ds
 
 
 def _add_d2s(ds):
@@ -29,6 +32,7 @@ def _add_d2s(ds):
         ds [xr.Dataset]: ATL09 xarray Dataset with the newly added d2s coordinate
     '''
     # TODO look into whether or not there's a WGS method for obtaining separations mroe accurately...
+    # TODO test function
 
     # coordinates for Summit extracted from Google Maps. Is there a more accurate/reliable source of coordinates?
     summit_lat = 72.5802131599
@@ -46,3 +50,22 @@ def _add_d2s(ds):
 
     ds['d2s'] = distance_to_summit
     return ds.set_coords('d2s')
+
+
+def _add_height_AGL(ds):
+    '''Function to add height_AGL (height above ground level) coordinate to ATL09 dataset.
+    
+    INPUTS:
+        ds [xr.Dataset]: xarray dataset containing the ATL09 data
+        
+    OUTPUTS:
+        ds [xr.Dataset]: ATL09 xarray Dataset with the newly added height_AGL coordinate
+    '''
+    # TODO test and see if this can be plotted against...
+    # TODO test function works...
+
+    # order of subtraction then addition to preserve order of coordinates in height_AGL
+    hAGL = (-ds['surface_height'] + ds['ds_va_bin_h']).where(ds['surface_height'] <1e38).interpolate_na(dim='time_index',fill_value='extrapolate',keep_attrs=True)
+
+    ds['height_AGL'] = hAGL
+    return ds.set_coords('height_AGL')
