@@ -23,7 +23,7 @@ def add_coordinates(ds):
 
 
 def _add_d2s(ds):
-    '''Function to add d2s (distance to Summit) coordinate to xr dataset.
+    '''Function to add d2s (distance to Summit, km) coordinate to xr dataset.
     
     INPUTS:
         ds [xr.Dataset]: xarray dataset containing the ATL09 data
@@ -46,9 +46,9 @@ def _add_d2s(ds):
     dot_prod = sind(ds['latitude'])*sind(summit_lat) + cosd(ds['latitude'])*cosd(summit_lat) * ( cosd(ds['longitude'])*cosd(summit_lon) + sind(ds['longitude'])*sind(summit_lon) )
     
     a = 6400 # in km
-    distance_to_summit = np.arccos(dot_prod) * a
+    distance_to_summit = np.arccos(dot_prod) * a # in km
 
-    ds['d2s'] = distance_to_summit
+    ds['d2s'] = distance_to_summit.interpolate_na(dim='time_index',fill_value='extrapolate')
     return ds.set_coords('d2s')
 
 
