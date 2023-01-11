@@ -69,3 +69,19 @@ def _add_height_AGL(ds):
 
     ds['height_AGL'] = hAGL
     return ds.set_coords('height_AGL')
+
+
+def _add_time(ds):
+    '''Function to add time coordinate to ATL09 dataset.
+    
+    INPUTS:
+        ds [xr.Dataset]: xarray dataset containing the ATL09 data
+        
+    OUTPUTS:
+        ds [xr.Dataset]: ATL09 xarray Dataset with the newly added time coordinate
+    '''
+    time = ds['delta_time'].astype('timedelta[s]')
+    epoch = np.datetime64('2018-01-01').astype('datetime64[ms]')
+    time = time + epoch
+    ds['time'] = time
+    return ds.set_coords('time')
