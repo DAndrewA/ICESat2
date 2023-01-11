@@ -80,8 +80,9 @@ def _add_time(ds):
     OUTPUTS:
         ds [xr.Dataset]: ATL09 xarray Dataset with the newly added time coordinate
     '''
-    time = ds['delta_time'].astype('timedelta[s]')
-    epoch = np.datetime64('2018-01-01').astype('datetime64[ms]')
+    time = ds['delta_time']
+    time = time.interpolate_na(dim='time_index',fill_value='extrapolate').astype('timedelta64[s]')
+    epoch = np.datetime64('2018-01-01').astype('datetime64[s]')
     time = time + epoch
-    ds['time'] = time
+    ds['time'] = time#.interpolate_na(dim='time_index', fill_value='extrapolate')
     return ds.set_coords('time')
