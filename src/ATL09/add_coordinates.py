@@ -19,6 +19,7 @@ def add_coordinates(ds):
     # sequentially add all additional coordinates
     ds = _add_d2s(ds)
     ds = _add_height_AGL(ds)
+    ds = _add_time(ds)
     return ds
 
 
