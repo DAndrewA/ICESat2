@@ -83,9 +83,13 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
             print(f'{k} | {vals.shape}: {axis_names}')
 
             # generate attributes for the xarray DataArray
-            attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs.items()}
-            if 'units' in attrs:
-                attrs['units'] = str(attrs['units'])[2:-1] # remove the b"" from the units introduced by h5py
+            #attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs.items()}
+            attrs = {}
+            for j,v in f['profile_1']['high_rate'][k].attrs.items():
+                if type(v) == np.bytes_:
+                    # solution from anon582847382: https://stackoverflow.com/questions/23618218/numpy-bytes-to-plain-string
+                    v = v.decode('UTF-8')
+                attrs[j] = v
 
             # need to subset the coordinates based on which are present in vals
             da_coords = {v: coords[v] for v in axis_names}
