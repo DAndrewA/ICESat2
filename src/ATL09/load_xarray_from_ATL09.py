@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import icepyx as ipx
 
-def load_xarray_from_ATL09(filename,subsetVariables=None):
+def load_xarray_from_ATL09(filename,subsetVariables=None,createNan=True):
     '''Function to load in ATL09 data to xarray format from the hdf5 file format.
     
     The function will first open the h5 file and then create a high-frequency and low-frequency xr.Dataset objects.
@@ -18,6 +18,20 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
     These will then be placed into the xr.Dataset objects.
 
     At the end, I will return both the high-frequency and low-frequency datasets. These could then possibly be conjoined afterwards along the time axis, although I'm unsure if thats a good idea or not...
+    
+    INPUTS:
+        filename : string
+            filename of the .h5 ATL09 file to be loaded.
+
+        subsetVariables : None, itterable of strings
+            Itterable containing strings of the variables to be extracted from the h5 file's profiles.
+
+        createNan : boolean
+            Flag for whether or not to utilise the _FillValue attribute in data to create NaN values in the data. If True, will apply da.where(da < _FillValue), if False then the data won't be changed upon loading.
+
+    OUTPUTS:
+        ds : xr.DataSet object
+            The xarray dataset containing the ATL09 data, with profile, time_index, height, layer and surface type as coordinates.
     '''
 
     subset_default = ('cab_prof','delta_time','density_pass1','density_pass2','ds_va_bin_h','latitude','longitude','prof_dist_x','prof_dist_y','range_to_top','surface_bin','surface_h_dens','surface_height','surface_width')
@@ -91,11 +105,21 @@ def load_xarray_from_ATL09(filename,subsetVariables=None):
                     v = v.decode('UTF-8')
                 attrs[j] = v
 
+            # if _FillValue is in the keys, extract the value
+            fillValue = None
+            if '_FillValue' in attrs:
+                fillValue = attrs['_FillValue'][0]
+
             # need to subset the coordinates based on which are present in vals
             da_coords = {v: coords[v] for v in axis_names}
 
             # create the DataArray and append it to the Dataset
             da = xr.DataArray(vals,coords=da_coords, dims=axis_names, attrs=attrs)
+
+            # if createNan is active, and fillValue is not None, then we want to create Nan values in the data array
+            if createNan and fillValue is not None:
+                da = da.where(da < fillValue)
+
             ds[k] = da
 
         return ds
