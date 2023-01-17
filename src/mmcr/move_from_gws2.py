@@ -6,7 +6,7 @@ Function to move MOM MMCR files from the ICECAPSarchive on JASMIN to a target di
 import datetime as pydt
 import os
 import warnings
-from ..helper import move_data_files as helper
+import shutil
 
 
 def move_from_gws2(dir_target, dir_mmcr='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSarchive/mmcr/mom',date_range=None,filenames_list=None):
@@ -63,7 +63,8 @@ def move_from_gws2(dir_target, dir_mmcr='/gws/nopw/j04/ncas_radar_vol2/data/ICEC
             exists_destination = os.path.exists(os.path.join(dir_target,current_filename))
 
             print(f'{current_filename} | {exists_archive=} | {exists_destination=}')
-            helper.copy_file(dir_mmcr,current_filename,dir_target)
+            shutil.copy(os.path.join(dir_mmcr,current_filename),os.path.join(dir_target,current_filename))
+
             currentDate = currentDate + dt_hour
         return
 
@@ -89,7 +90,7 @@ def _remove_minute_from_datetime(dtObj):
 
 
 start = pydt.datetime(2018,7,21,13,12)
-end = pydt.datetime(2018,7,22,1,13)
+end = pydt.datetime(2018,7,22,2,13)
 range = [start, end]
-target = '/home/users/eeasm/_scripts/ICESat2/src/MMCR'
+target = '/home/users/eeasm/_scripts/ICESat2/src/mmcr'
 move_from_gws2(target,date_range=range)
