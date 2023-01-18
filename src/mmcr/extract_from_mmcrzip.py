@@ -31,6 +31,7 @@ def extract_from_mmcrzip(dir_target):
         # otherwise, unzip the file
         with zipfile.ZipFile(os.path.join(dir_target,'mmcrzip',fname), 'r') as zip_ref:
             zip_ref.extractall(dir_target)
+        print(f'{fname} extracted')
 
     return None
 

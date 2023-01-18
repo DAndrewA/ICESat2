@@ -23,6 +23,8 @@ def load_xarray_from_mmcrmom(dir_target):
     files_mmcr = os.listdir(dir_target)
     files_mmcr = [f for f in files_mmcr if f[-10:] == 'MMCRMom.nc']
 
+    print(f'Files being loaded: {files_mmcr}')
+
     # list to hold the individual datasets before concatenation
     datasets = []
 
@@ -32,3 +34,9 @@ def load_xarray_from_mmcrmom(dir_target):
 
     ds = xr.concat(datasets,dim='time')
     return ds
+
+'''£example code
+target = '/home/users/eeasm/_scripts/ICESat2/src/mmcr'
+ds = load_xarray_from_mmcrmom(target)
+print(ds)
+'''

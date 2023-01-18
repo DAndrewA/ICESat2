@@ -68,7 +68,6 @@ def move_from_gws2(dir_target, dir_mmcr='/gws/nopw/j04/ncas_radar_vol2/data/ICEC
             currentDate = currentDate + dt_hour
         return
 
-
     # otherwise, filenames_list has been provided
     raise NotImplementedError
 
@@ -89,8 +88,10 @@ def _remove_minute_from_datetime(dtObj):
     return dtObj_
 
 
+''' #Example code
 start = pydt.datetime(2018,7,21,13,12)
 end = pydt.datetime(2018,7,22,2,13)
 range = [start, end]
 target = '/home/users/eeasm/_scripts/ICESat2/src/mmcr'
 move_from_gws2(target,date_range=range)
+'''
