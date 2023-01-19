@@ -79,7 +79,7 @@ def read_radar_data(dir_target, mode_idx=3, mask_sn=None):
     #mmcr_data = mmcr_data.assign_coords(time =mmcr_data.time_offset)
     
     if mask_sn is not None:
-        mmcr_data = mmcr_data.where(mmcr_data.SignalToNoiseRatio> None)
+        mmcr_data = mmcr_data.where(mmcr_data.SignalToNoiseRatio> mask_sn)
         
     #print("--- %s seconds ---" % (time.time() - start_time))
     return mmcr_data
