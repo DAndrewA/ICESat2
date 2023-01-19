@@ -42,28 +42,26 @@ ds = load_xarray_from_mmcrmom(target)
 print(ds)
 '''
 
-def read_radar_data(start_date,stop_date,mode_idx, mask_sn): 
+def read_radar_data(dir_target, mode_idx, mask_sn): 
     '''Author: Sarah Barr
     Creation date: 18/1/23
 
-    Function to read processed radar files between two dates, select data from one mode and output one xarray dataset
+    Function to read all of the files within a directory that are MMCR Moment files.
     
-    Input: 
-     - dates: in format YYYY-MM-DD
-     - mask_sn: boolean, True masks data where signal to noise ratio <-14
+    INPUTS:
+        dir_target : string
+            directory the .nc data files are located in.
+        mode_idx : 
+            radar operational mode from which we want to select the data. This is 0-indexed, whereas the instrument modes range from 1-10. Thus, subtract one from the desired mode. *** CHECK THIS IS TRUE ***
+        mask_sn : boolean
+            True will return data masked where the signal-to-noise ratio is less than -14. False will return all the data.
+        
     '''
     #start_time = time.time()
-    dpath = '/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSarchive/mmcr/processed/'
-    
-    all_files = []
-    date_list = pd.date_range(start_date,stop_date,freq='1D')
+    files_mmcr = os.listdir(dir_target)
+    files_mmcr = [f for f in files_mmcr if f[-10:] == 'MMCRMom.nc']
 
-    for date in date_list:
-        all_files.append(glob.glob(dpath+ 'smtmmcrmomX1.b1.%s*.cdf'%dt.datetime.strftime(date,format='%Y%m%d')))
-
-    flatten = lambda l: [item for sublist in l for item in sublist]
-    all_files = flatten(all_files)
-    all_files.sort()
+    files_mmcr.sort()
 
     # get heights to add back later (necessary due to problem with xarray trying to input netcdf with a variable and dimension called 'heights')
     mmcr_heights = netCDF4.Dataset(all_files[0],'r')
