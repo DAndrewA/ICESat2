@@ -61,7 +61,7 @@ def read_radar_data(dir_target, mode_idx=3, mask_sn=None):
     files_mmcr = os.listdir(dir_target)
     files_mmcr = [f for f in files_mmcr if f[-10:] == 'MMCRMom.nc']
     files_mmcr = [os.path.join(dir_target,f) for f in files_mmcr]
-    files_mmcr.sort()
+    files_mmcr = sorted(files_mmcr)
 
     mmcr_data = xr.open_mfdataset(files_mmcr,concat_dim = 'time', combine = 'nested')#,drop_variables='heights')
     
@@ -70,7 +70,7 @@ def read_radar_data(dir_target, mode_idx=3, mask_sn=None):
     
     # select data from chosen mode
     mmcr_data = mmcr_data.sel(mode = mode_idx)
-    #mmcr_data = mmcr_data.where(mmcr_data.ModeNum==3., drop = True)
+    mmcr_data = mmcr_data.where(mmcr_data.ModeNum==3, drop = True)
     
 
     #heights = mmcr_data.Heights.isel(time=0,drop=True)
@@ -80,6 +80,7 @@ def read_radar_data(dir_target, mode_idx=3, mask_sn=None):
     
     if mask_sn is not None:
         mmcr_data = mmcr_data.where(mmcr_data.SignalToNoiseRatio> mask_sn)
+    mmcr_data = mmcr_data.where(mmcr_data.SignalToNoiseRatio < 1e36)
         
     #print("--- %s seconds ---" % (time.time() - start_time))
     return mmcr_data
