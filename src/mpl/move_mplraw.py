@@ -14,7 +14,7 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
 
     INPUTS:
         dir_target : string
-            String containing the base directory for the mpl data analysis. Files will be copied into dir_target/mplraw
+            String containing the base directory for the mpl data analysis. Files will be copied into dir_target/mplraw_zip
 
         dir_mpl : string
             The directory from which the .mpl.gz files will be copied.
@@ -32,15 +32,15 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
         warnings.warn(f'move_mplraw({dir_target=}, {dir_mpl=}, {date_range=}, {filenames_list=}) -- Neither date_range or filenames_list has been set. Returning None.')
         return None
 
-    mpl_filename_format = '%Y%m%d%H%M.nc.zip'
+    mpl_filename_format = '%Y%m%d%H%M.mpl.gz'
 
     # we will put the mpl files into dir_target/mplraw, so need to check if that subdirectory exists
-    if not os.path.isdir(os.path.join(dir_target,'mplraw')):
-        warnings.warn(f'move_mplraw: /mplraw does not exist at {dir_target=}. Creating subdirectory now.')
-        os.mkdir(os.path.join(dir_target,'mplraw'))
+    if not os.path.isdir(os.path.join(dir_target,'mplraw_zip')):
+        warnings.warn(f'move_mplraw: /mplraw_zip does not exist at {dir_target=}. Creating subdirectory now.')
+        os.mkdir(os.path.join(dir_target,'mplraw_zip'))
 
     # change dir_target to have the /mplraw as its endpoint
-    dir_target = os.path.join(dir_target,'mplraw') 
+    dir_target = os.path.join(dir_target,'mplraw_zip') 
 
     # date_range takes precedence over filenames_list
     if date_range is not None:
@@ -62,6 +62,7 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
             shutil.copy(os.path.join(dir_mpl,current_filename),os.path.join(dir_target,current_filename))
 
             currentDate = currentDate + dt_hour
+        print('move_mplraw: complete')
         return
 
     # otherwise, filenames_list has been provided
@@ -81,3 +82,12 @@ def _remove_minute_from_datetime(dtObj):
     d_hour_string = f'{dtObj.year:04}-{dtObj.month:02}-{dtObj.day:02}T{dtObj.hour:02}:00:00'
     dtObj_ = dt.datetime.fromisoformat(d_hour_string)
     return dtObj_
+
+'''
+#Example code
+start = dt.datetime(2019,1,1,0,12)
+end = dt.datetime(2019,1,1,23,13)
+range = [start, end]
+target = '/home/users/eeasm/_scripts/ICESat2/src/mpl'
+move_mplraw(target,date_range=range)
+'''
