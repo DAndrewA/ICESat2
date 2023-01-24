@@ -27,7 +27,7 @@ def extract_from_mmcrzip(dir_target):
     for fname in files_zip:
         # for each .nc.zip file, check it hasn't already been unzipped to dir_target
         if fname[:-4] in files_unzip:
-            pass
+            continue
         # otherwise, unzip the file
         with zipfile.ZipFile(os.path.join(dir_target,'mmcrzip',fname), 'r') as zip_ref:
             zip_ref.extractall(dir_target)
@@ -36,5 +36,5 @@ def extract_from_mmcrzip(dir_target):
     return None
 
 '''#example code'''
-target = '/home/users/eeasm/_scripts/ICESat2/src/mmcr'
-extract_from_mmcrzip(target)
+#target = '/home/users/eeasm/_scripts/ICESat2/src/mmcr'
+#extract_from_mmcrzip(target)
