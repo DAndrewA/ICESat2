@@ -49,7 +49,7 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
         date_end = date_range[1]
         # need to round to the hour: down for date_init; up for date_end
         date_init = _remove_minute_from_datetime(date_init)
-        date_end = _remove_minute_from_datetime(date_end) + dt_hour
+        date_end = _remove_minute_from_datetime(date_end)
 
         currentDate = date_init
         while currentDate <= date_end:
