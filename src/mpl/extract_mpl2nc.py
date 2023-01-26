@@ -46,7 +46,8 @@ def extract_mpl2nc(dir_target):
     return None
 
 
-
+'''
 # example code
 target = '/home/users/eeasm/_scripts/ICESat2/src/mpl'
 extract_mpl2nc(target)
+'''

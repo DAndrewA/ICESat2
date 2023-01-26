@@ -44,6 +44,8 @@ def extract_from_mplgz(dir_target):
 
     return None
 
+'''
 # example code
 target = '/home/users/eeasm/_scripts/ICESat2/src/mpl'
 extract_from_mplgz(target)
+'''
