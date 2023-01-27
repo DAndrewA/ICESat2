@@ -9,7 +9,7 @@ import shutil
 import datetime as dt
 import warnings
 
-def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSarchive/mpl/raw', date_range=None, filenames_list=None):
+def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSarchive/mpl/raw', date_range=None, filenames_list=None, verbose=False):
     '''Function to move .mpl.gz raw files from the ICECAPS archive to a desired target directory.
 
     INPUTS:
@@ -24,6 +24,9 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
 
         filenames_list : None, iterable of strings
             Iterable of strings that will serve as the filenames to be copied - must be exact matches including file extensions.
+
+        verbose : boolean
+            if True, status for each file will be printed. If False, this will be in a compressed, single-line format
 
     OUTPUTS: None
     '''
@@ -52,17 +55,25 @@ def move_mplraw(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSa
         date_end = _remove_minute_from_datetime(date_end)
 
         currentDate = date_init
+
+        if verbose: print('move_mplraw: ')
+        else: print(f'{"move_mplraw":>20}: ',end='')
+
         while currentDate <= date_end:
             # for each datetime in the range, we need to create the expected filename and see if its in the directory
             current_filename = currentDate.strftime(mpl_filename_format)
             exists_archive = os.path.exists(os.path.join(dir_mpl,current_filename))
             exists_destination = os.path.exists(os.path.join(dir_target,current_filename))
 
-            print(f'{current_filename} | {exists_archive=} | {exists_destination=}')
+            if verbose: print(f'{current_filename} | {exists_archive=} | {exists_destination=}')
+            else: print(f'{exists_archive*2 + exists_destination}', end='')
+
             shutil.copy(os.path.join(dir_mpl,current_filename),os.path.join(dir_target,current_filename))
 
             currentDate = currentDate + dt_hour
-        print('move_mplraw: complete')
+        
+        if verbose: print('move_mplraw: complete')
+        else: print('')
         return
 
     # otherwise, filenames_list has been provided
