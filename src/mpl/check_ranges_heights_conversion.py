@@ -71,11 +71,27 @@ def read_from_binary(fname):
         sdc : np.ndarray : dtype=float64
             array containing the standard deviation on c values.
     '''
-    times = np.array([], dtype=np.datetime64)
-    m = np.array([], dtype=np.float64)
-    c = np.array([], dtype=np.float64)
-    sdm = np.array([], dtype=np.float64)
-    sdc = np.array([], dtype=np.float64)
+    times = []
+    m = []
+    c = []
+    sdm = []
+    sdc = []
 
-    with open(fname, 'rb'):
-        jksgfuhsbfeiuvf
+    with open(fname, 'rb') as f:
+        fmt = '<ddddd'
+        size = struct.calcsize(fmt)
+        # keep reading the file when the buffer is the right size
+        while (buff := f.read(size)):
+            vals = struct.unpack(fmt,buff)
+            times.append(vals[0])
+            m.append(vals[1])
+            c.append(vals[2])
+            sdm.append(vals[3])
+            sdc.append(vals[4])
+    
+    times = np.array(times, dtype=np.datetime64)
+    m = np.array(m, dtype=np.float64)
+    c = np.array(c, dtype=np.float64)
+    sdm = np.array(sdm, dtype=np.float64)
+    sdc = np.array(sdc, dtype=np.float64)
+    return times, m, c, sdm, sdc
