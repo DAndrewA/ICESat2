@@ -39,6 +39,13 @@ def write_to_binary(fname, dto, m, c, sdm, sdc):
 
         sdc: The standard deviation for the c values of the day
     '''
+    # convert numpy datatypes to python data types
+    dto = dto.astype('float').item()
+    m = m.item()
+    c = c.item()
+    sdm = sdm.item()
+    sdc = sdc.item()
+
     with open(fname, 'ab') as f:
         # format for the binary writing.
         # little endian, three 8-byte segments for "double"s
@@ -83,7 +90,8 @@ def read_from_binary(fname):
         # keep reading the file when the buffer is the right size
         while (buff := f.read(size)):
             vals = struct.unpack(fmt,buff)
-            times.append(vals[0])
+            times.append(
+            np.datetime64(datetime.datetime.utcfromtimestamp(vals[0])))
             m.append(vals[1])
             c.append(vals[2])
             sdm.append(vals[3])
@@ -95,3 +103,39 @@ def read_from_binary(fname):
     sdm = np.array(sdm, dtype=np.float64)
     sdc = np.array(sdc, dtype=np.float64)
     return times, m, c, sdm, sdc
+
+
+
+
+
+
+
+# FOR TESTING PURPOSES ONLY
+def _test_read_write():
+    def _synthetic_data():
+        times = np.array([np.datetime64('2019-02-01T00:51'),
+                np.datetime64('2019-02-01T14:16'),
+                np.datetime64('2019-02-01T10:53:12'),
+                np.datetime64('2022-04-03T21:47:36')],dtype=np.datetime64)
+        m = np.array([2,3,4,5.863248758923],dtype=np.float64)
+        c = np.array([123123,675657,3.543543,-234],dtype=np.float64)
+        sdm = np.array([234,423,532,235],dtype=np.float64)
+        sdc = np.array([1,1.01,1.0001,1.000001],dtype=np.float64)
+        return times, m, c, sdm, sdc
+
+    data = _synthetic_data()
+    filename = '/home/users/eeasm/_scripts/ICESat2/src/mpl/range_height.bin'
+    for t,m,c,sdm,sdc in zip(*data):
+        write_to_binary(filename, t, m, c, sdm, sdc)
+    print('Data written!!')
+
+    data_out = read_from_binary(filename)
+
+    print('=============================')
+    print('data:')
+    for d,n in zip(data, ['times', 'c', 'm', 'sdm', 'sdc']):
+        print(f'{n:>6}: {d}')
+    print('=============================')
+    print('data_out:')
+    for d,n in zip(data_out, ['times', 'c', 'm', 'sdm', 'sdc']):
+        print(f'{n:>6}: {d}')
