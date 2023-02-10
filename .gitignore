@@ -2,3 +2,4 @@
 *.nc*
 *.mpl*
 *.cdf
+data/*
