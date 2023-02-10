@@ -6,9 +6,9 @@ Function to get the mpl data from an archive position and then extract the files
 This is a simple combineation of move_mplraw, extract_mplgz and extract_mpl2nc.
 '''
 
-from move_mplraw import move_mplraw
-from extract_from_mplgz import extract_from_mplgz
-from extract_mpl2nc import extract_mpl2nc
+from .move_mplraw import move_mplraw
+from .extract_from_mplgz import extract_from_mplgz
+from .extract_mpl2nc import extract_mpl2nc
 
 def get_mpl_from_archive(dir_target, dir_mpl='/gws/nopw/j04/ncas_radar_vol2/data/ICECAPSarchive/mpl/raw', date_range=None, filenames_list=None, verbose=False):
     '''Function to get and extract raw mpl archived files.
