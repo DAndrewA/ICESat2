@@ -159,6 +159,31 @@ def ingested_time_offset(dsl, **kwargs):
     time_offset = dsl.time.values - base_time
     return time_offset
 
+def ingested_hour(dsl, **kwargs):
+	pass
+def ingested_nshots(dsl, **kwargs):
+	pass
+def ingested_rep_rate(dsl, **kwargs):
+	pass
+def ingested_energy(dsl, **kwargs):
+	pass
+def ingested_temp_detector(dsl, **kwargs):
+	pass
+def ingested_temp_telescope(dsl, **kwargs):
+	pass
+def ingested_temp_laser(dsl, **kwargs):
+	pass
+def ingested_mn_background_1(dsl, **kwargs):
+	pass
+def ingested_sd_background_1(dsl, **kwargs):
+	pass
+def ingested_mn_background_2(dsl, **kwargs):
+	pass
+def ingested_sd_background_2(dsl, **kwargs):
+	pass
+def ingested_initial_cbh(dsl, **kwargs):
+	pass
+
 def ingested_backscatter_1(dsl,limit_height,**kwargs):
     '''Create the backscatter_1 ingested variable.
     
@@ -197,6 +222,12 @@ def ingested_backscatter_2(dsl,limit_height,**kwargs):
         backscatter_2 = backscatter_2[:,:1200]
     return backscatter_2
 
+def ingested_lat(dsl, **kwargs):
+	pass
+def ingested_lon(dsl, **kwargs):
+	pass
+def ingested_alt(dsl, **kwargs):
+	pass
 
 
 '''
@@ -217,23 +248,23 @@ def ingested_backscatter_2(dsl,limit_height,**kwargs):
 VARIABLES_INGESTED = {
     'base_time': [(), np.datetime64, {'long_name': 'Base time in Epoch'}, ingest_base_time],
     'time_offset': [('time',), np.timedelta64, {'long_name': 'Time offset from base_time'}, ingested_time_offset],
-    'hour': [('time',), np.float32, {'long_name': 'Hour of the day', 'units': 'UTC'}, None],
-    'nshots': [('time',), np.int32, {'long_name': 'number of laser shots', 'units': 'unitless'}, None],
-    'rep_rate': [('time',), np.int32, {'long_name': 'laser pulse repetition frequency', 'units': 'Hz'}, None],
-    'energy': [('time',), np.float32, {'long_name': 'laser energy', 'units': 'microJoules'}, None],
-    'temp_detector': [('time',), np.float32, {'long_name': 'detector temperature', 'units': 'C'}, None],
-    'temp_telescope': [('time',), np.float32, {'long_name': 'telescope temperature', 'units': 'C'}, None],
-    'temp_laser': [('time',), np.float32, {'long_name': 'laser temperature', 'units': 'C'}, None],
-    'mn_background_1': [('time',), np.float32, {'long_name': 'mean background in channel 1', 'units': 'counts / microsecond'}, None],
-    'sd_background_1': [('time',), np.float32, {'long_name': 'standard deviation of the background in channel 1', 'units': 'counts / microsecond'}, None],
-    'mn_background_2': [('time',), np.float32, {'long_name': 'mean background in channel 2', 'units': 'counts / microsecond'}, None],
-    'sd_background_2': [('time',), np.float32, {'long_name': 'standard deviation of the background in channel 2', 'units': 'counts / microsecond'}, None],
-    'initial_cbh': [('time',), np.float32, {'long_name': 'initial cloud base height from MPL software', 'units': 'km AGL'}, None],
+    'hour': [('time',), np.float32, {'long_name': 'Hour of the day', 'units': 'UTC'}, ingested_hour],
+    'nshots': [('time',), np.int32, {'long_name': 'number of laser shots', 'units': 'unitless'}, ingested_nshots],
+    'rep_rate': [('time',), np.int32, {'long_name': 'laser pulse repetition frequency', 'units': 'Hz'}, ingested_rep_rate],
+    'energy': [('time',), np.float32, {'long_name': 'laser energy', 'units': 'microJoules'}, ingested_energy],
+    'temp_detector': [('time',), np.float32, {'long_name': 'detector temperature', 'units': 'C'}, ingested_temp_detector],
+    'temp_telescope': [('time',), np.float32, {'long_name': 'telescope temperature', 'units': 'C'}, ingested_temp_telescope],
+    'temp_laser': [('time',), np.float32, {'long_name': 'laser temperature', 'units': 'C'}, ingested_temp_laser],
+    'mn_background_1': [('time',), np.float32, {'long_name': 'mean background in channel 1', 'units': 'counts / microsecond'}, ingested_mn_background_1],
+    'sd_background_1': [('time',), np.float32, {'long_name': 'standard deviation of the background in channel 1', 'units': 'counts / microsecond'}, ingested_sd_background_1],
+    'mn_background_2': [('time',), np.float32, {'long_name': 'mean background in channel 2', 'units': 'counts / microsecond'}, ingested_mn_background_2],
+    'sd_background_2': [('time',), np.float32, {'long_name': 'standard deviation of the background in channel 2', 'units': 'counts / microsecond'}, ingested_sd_background_2],
+    'initial_cbh': [('time',), np.float32, {'long_name': 'initial cloud base height from MPL software', 'units': 'km AGL'}, ingested_initial_cbh],
     'backscatter_1': [('time', 'height'), np.float32, {'long_name': 'attenuated backscatter in channel 1', 'units': 'counts / microsecond', 'channel_interpretation': 'This is the linear cross-polarization channel.  It is sensitive to the depolarized backscatter from the atmosphere', 'comment': 'This field literally contains the counts detected by the detector for each range bin.  No corrections of any kind have been applied to this field.  In order to make proper use of the data, one should correct for detector non-linearity, subtract the afterpulse, subtract background counts, apply a range-squared correction, and correct for optical overlap and collimation effects'}, ingested_backscatter_1],
     'backscatter_2': [('time', 'height'), np.float32, {'long_name': 'attenuated backscatter in channel 2', 'units': 'counts / microsecond', 'channel_interpretation': 'This is the circular polarization channel.  It is sensitive to the unpolarized backscatter from the atmosphere', 'comment': 'This field literally contains the counts detected by the detector for each range bin.  No corrections of any kind have been applied to this field.  In order to make proper use of the data, one should correct for detector non-linearity, subtract the afterpulse, subtract background counts, apply a range-squared correction, and correct for optical overlap and collimation effects'}, ingested_backscatter_2],
-    'lat': [(), np.float32, {'long_name': 'north latitude', 'units': 'deg'}, None],
-    'lon': [(), np.float32, {'long_name': 'east longitude', 'units': 'deg'}, None],
-    'alt': [(), np.float32, {'long_name': 'altitude', 'units': 'm MSL'}, None]
+    'lat': [(), np.float32, {'long_name': 'north latitude', 'units': 'deg'}, ingested_lat],
+    'lon': [(), np.float32, {'long_name': 'east longitude', 'units': 'deg'}, ingested_lon],
+    'alt': [(), np.float32, {'long_name': 'altitude', 'units': 'm MSL'}, ingested_alt]
 }
 
 # test function
