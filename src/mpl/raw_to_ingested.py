@@ -78,21 +78,14 @@ def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
         if l[3] is None:
             continue
         temp = l[3](data_loaded,**ingest_kwargs)
-        temp = temp.astype(l[1])
-
+        if type(temp) == np.ndarray:
+            temp = temp.astype(l[1])
         attrs = l[2]
         dims = l[0]
         da = xr.DataArray(temp,dims=dims,attrs=attrs)
         ds[k] = da
 
-    print('=================================')
-    print(ds)
     return ds
-
-
-
-
-
 
 
 def generate_heights(num_bins, bin_time, c, v_offset=3000):
@@ -171,7 +164,7 @@ def ingested_hour(dsl, **kwargs):
         hour : np.ndarray (time,)
             Array containing the hour values for the measurements.
     '''
-	hour = dsl.time_offset.values.astype('float32') / 3599916859392.0000000000000000
+	hour = dsl.time.values.astype('float32') / 3599916859392.0000000000000000
 	return hour
 
 def ingested_nshots(dsl, **kwargs):
@@ -303,7 +296,7 @@ def ingested_mn_background_2(dsl, **kwargs):
         mn_background_2 : np.ndarray (time,)
             numpy array containing the mean background from channel 2
 	'''
-    mn_background_2 = dsl.background_average.values_2
+    mn_background_2 = dsl.background_average_2.values
     return mn_background_2
 
 def ingested_sd_background_2(dsl, **kwargs):
@@ -395,10 +388,10 @@ def ingested_alt(dsl, **kwargs):
             The raw loaded dataset
 	    
     OUTPUTS:
-        alt : np.ndarray (time,)
-            numpy array of zeros.
+        alt : float ()
+            3200
     '''
-	alt = dsl.bin_time * 0 # bin_time is an arbitrary choice
+	alt = 3200 # bin_time is an arbitrary choice
 	return alt
 
 
@@ -439,6 +432,8 @@ VARIABLES_INGESTED = {
     'alt': [(), np.float32, {'long_name': 'altitude', 'units': 'm MSL'}, ingested_alt]
 }
 
+'''
 # test function
 date = datetime.date(2021,2,11)
 raw_to_ingested('/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mpl',date)
+'''
