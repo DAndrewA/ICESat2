@@ -160,29 +160,180 @@ def ingested_time_offset(dsl, **kwargs):
     return time_offset
 
 def ingested_hour(dsl, **kwargs):
-	pass
+	'''Create the ingested hour variable.
+    NOTE: This approach gives a linear error from O(-5e-4) to 0 over 24 hours
+
+    INPUTS:
+        dsl : xr.Dataset
+            raw loaded dataset
+	    
+	OUTPUTS:
+        hour : np.ndarray (time,)
+            Array containing the hour values for the measurements.
+    '''
+	hour = dsl.time_offset.values.astype('float32') / 3599916859392.0000000000000000
+	return hour
+
 def ingested_nshots(dsl, **kwargs):
-	pass
+	'''Create the ingested nshots variable.
+    
+    INPUTS:
+        dsl : xr.Dataset
+	        The raw loaded dataset
+	    
+    OUTPUTS:
+        nshots : np.ndarray (time,)
+	        numpy array containing the summed shots per measurement.
+	'''
+	nshots = dsl.shots_sum.values
+	return nshots
+
 def ingested_rep_rate(dsl, **kwargs):
-	pass
+	'''Create the ingested rep_rate variable.
+    
+    INPUTS:
+        dsl : xr.Dataset
+	        The raw loaded dataset
+	    
+    OUTPUTS:
+        rep_rate : np.ndarray (time,)
+	        numpy array containing the shot frequency data.
+	'''
+	rep_rate = dsl.trigger_frequency.values
+	return rep_rate
+
 def ingested_energy(dsl, **kwargs):
-	pass
+	'''Create the energy ingested variable.
+    Note, this formulation doesn't match the ingested value exactly, but the error is O(2e-7) which I deem to be sufficiently small for now.
+    
+    INPUTS:
+        dsl : xr.Dataset
+	        The raw laoded dataset.
+	    
+    OUTPUTS:
+        energy : np.ndarray (time,)
+	        np array with the laser energy output.
+	'''
+	energy = dsl.energy_monitor.values / 1000
+	return energy
+
 def ingested_temp_detector(dsl, **kwargs):
-	pass
+	'''Create the ingested temP_detector variable.
+    NOTE: discrepancies between dsl and the original ingested format are due to float64->float32 conversions.
+	
+    INPUTS:
+        dsl : xr.Dataset
+	        the raw loaded data.
+	    
+	OUTPUTS:
+        temp_detector : np.ndarray (time,)
+	        numpy array with the detector temperature values.
+	'''
+	temp_detector = dsl.temp_0.values / 100
+	return temp_detector
+
 def ingested_temp_telescope(dsl, **kwargs):
-	pass
+	'''Create the ingested temp_telescope variable.
+    NOTE: discrepancies between dsl and the original ingested format are due to float64->float32 conversions.
+	
+    INPUTS:
+        dsl : xr.Dataset
+	        the raw loaded data.
+	    
+	OUTPUTS:
+        temp_telescope : np.ndarray (time,)
+	        numpy array with the telescope temperature values.
+	'''
+	temp_telescope = dsl.temp_2.values / 100
+	return temp_telescope
+
 def ingested_temp_laser(dsl, **kwargs):
-	pass
+	'''Create the ingested temp_laser variable.
+    NOTE: discrepancies between dsl and the original ingested format are due to float64->float32 conversions.
+	
+    INPUTS:
+        dsl : xr.Dataset
+	        the raw loaded data.
+	    
+	OUTPUTS:
+        temp_laser : np.ndarray (time,)
+	        numpy array with the laser temperature values.
+	'''
+	temp_laser = dsl.temp_3.values / 100
+	return temp_laser
+
 def ingested_mn_background_1(dsl, **kwargs):
-	pass
+	'''Create the mn_background_1 ingested variable.
+    This is the mean background, and is simply taken from the background_average variable in the raw data.
+    
+    INPUTS:
+        dsl: xr.Dataset
+	        The loaded dataset
+	    
+    OUTPUTS:
+        mn_background_1 : np.ndarray (time,)
+            numpy array containing the mean background from channel 1
+	'''
+	mn_background_1 = dsl.background_average.values
+	return mn_background_1
+
 def ingested_sd_background_1(dsl, **kwargs):
-	pass
+	'''Create the sd_background_1 ingested variable.
+	
+	INPUTS:
+        dsl : xr.Dataset
+            The loaded raw dataset
+	    
+	OUTPUTS:
+        sd_background_1 : np.ndarray (time,)
+            Array containing the standard deviation of the background noise values
+    '''
+	sd_background_1 = dsl.background_stddev.values
+	return sd_background_1
+	
 def ingested_mn_background_2(dsl, **kwargs):
-	pass
+    '''Create the mn_background_2 ingested variable.
+    This is the mean background, and is simply taken from the background_average variable in the raw data.
+    
+    INPUTS:
+        dsl: xr.Dataset
+	        The loaded dataset
+	    
+    OUTPUTS:
+        mn_background_2 : np.ndarray (time,)
+            numpy array containing the mean background from channel 2
+	'''
+    mn_background_2 = dsl.background_average.values_2
+    return mn_background_2
+
 def ingested_sd_background_2(dsl, **kwargs):
-	pass
+	'''Create the sd_background_2 ingested variable.
+	
+	INPUTS:
+        dsl : xr.Dataset
+            The loaded raw dataset
+	    
+	OUTPUTS:
+        sd_background_2 : np.ndarray (time,)
+            Array containing the standard deviation of the background noise values
+    '''
+	sd_background_2 = dsl.background_stddev_2.values
+	return sd_background_2
+
 def ingested_initial_cbh(dsl, **kwargs):
-	pass
+	'''Create the ingested initial_cbh variable.
+	It appears this is uniformly 0 in the files, so an arbitrary choice of (time,) variable can be used.
+    
+	INPUTS:
+        dsl : xr.Dataset
+            The raw loaded dataset
+	    
+	OUPUTS:
+        initial_cbh : np.ndarray (time,)
+            numpy array that contains the "lowest detected cloud base height". Will be uniformly 0.
+    '''
+	initial_cbh = dsl.bin_time.values * 0
+	return initial_cbh
 
 def ingested_backscatter_1(dsl,limit_height,**kwargs):
     '''Create the backscatter_1 ingested variable.
@@ -223,11 +374,32 @@ def ingested_backscatter_2(dsl,limit_height,**kwargs):
     return backscatter_2
 
 def ingested_lat(dsl, **kwargs):
-	pass
+	'''Create the lat ingested varibale.
+	In the ingested the format, the value is simply given as 72.59622 -- check this is consistent with other values over time.
+    '''
+	return 72.59622
+
 def ingested_lon(dsl, **kwargs):
-	pass
+	'''Create the lon ingested variable.
+    In the ingested format, this appears to be given as -38.42197 - check this is consistent with other ingested files.
+    '''
+	return -38.42197
+
 def ingested_alt(dsl, **kwargs):
-	pass
+	'''Create the alt ingested variable.
+	
+	In the ingested format, this variable is given as a line of value 0. The dsl.gps_altitude variable gives a valid number (3200.0 for 11/2/2021). I'll stick with a line of value 0, for consistency.
+    
+    INPUTS:
+        dsl : xr.Dataset
+            The raw loaded dataset
+	    
+    OUTPUTS:
+        alt : np.ndarray (time,)
+            numpy array of zeros.
+    '''
+	alt = dsl.bin_time * 0 # bin_time is an arbitrary choice
+	return alt
 
 
 '''
