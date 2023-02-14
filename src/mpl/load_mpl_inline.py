@@ -11,6 +11,7 @@ import datetime
 import xarray as xr
 import numpy as np
 import netCDF4
+import glob
 
 def load_mpl_inline(fname):
     '''Function to load .mpl.gz files from the archive without the need to create additional files.
@@ -31,11 +32,8 @@ def load_mpl_inline(fname):
     mpl = mpl2nc_read_mpl_gzip(fname)
     mpl = mpl2nc.process_nrb(mpl)
     # convert mpl to xr.Dataset format
-    print(mpl)
-    print(type(mpl))
-
     ds = mpl_dict_to_xarray(mpl)
-    print(ds)
+    return ds
 
 
 def mpl2nc_read_mpl_gzip(fname):
@@ -85,10 +83,43 @@ def mpl_dict_to_xarray(d):
     f.software = 'mpl2nc (https://github.com/peterkuma/mpl2nc)'
     f.version = mpl2nc.__version__
 
-    ds = xr.open_dataset(xr.backends.NetCDF4DataStore(f))
+    ds = xr.open_dataset(xr.backends.NetCDF4DataStore(f)).load()
     f.close()
     return ds
 
 
-fname = '/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mplraw_zip/202102110000.mpl.gz'
-load_mpl_inline(fname)
+def mf_load_mpl_inline(fname_fmt, dir_root):
+    '''Function to load multiple .mpl.gz files inline.
+    
+    INPUTS:
+        fname_fmt : glob string
+            glob string for the format the filenames take for the files being loaded.
+
+        dir_root : string
+            path to the root directory containing the .mpl.gz files
+            
+    OUTPUTS:
+        ds : xr.Dataset
+            xarray dataset containing the data from the mpl files.
+    '''
+
+    fnames = glob.glob(fname_fmt, root_dir=dir_root)
+    fnames = sorted(fnames)
+    fnames = [n for n in fnames if '.mpl.gz' in n[-7:]] # ensure all files are .mpl.gz
+
+    ds = []
+    for fname in fnames:
+        n = os.path.join(dir_root,fname)
+        print(f'loading {fname}')
+        ds.append(load_mpl_inline(n))
+    ds = xr.combine_nested(datasets=ds, concat_dim='profile')
+    return ds
+
+
+
+#fname = '/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mplraw_zip/202102110000.mpl.gz'
+#load_mpl_inline(fname)
+
+#dir_root = '/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mplraw_zip'
+#globstr = '20210211*'
+#print(mf_load_mpl_inline(globstr,dir_root))
