@@ -112,6 +112,20 @@ def generate_heights(num_bins, bin_time, c, v_offset=3000):
     heights = 0.5*bin_time*c*np.arange(num_bins) - v_offset
     return heights
 
+def datetime64_to_datetime(dt64):
+    '''Converts a np.datetime64[ns] object to a python datetime.datetime object.
+    Taken from https://gist.github.com/blaylockbk/1677b446bc741ee2db3e943ab7e4cabd?permalink_comment_id=3775327
+
+    INPUTS:
+        dt64 : np.datetime64
+            The datetime64 object to be converted.
+            
+    OUTPUTS:
+        dtdt : datetime.datetime
+            The converted output datetime.datetime object.    
+    '''
+    timestamp = ( (dt64 - np.datetime64('1970-01-01T00:00:00')) / np.timedelta64(1,'s') )
+    return datetime.datetime.utcfromtimestamp(timestamp)
 
 ######################################################
 ################ INGESTING FUNCTIONS #################
@@ -153,7 +167,7 @@ def ingested_time_offset(dsl, **kwargs):
     return time_offset
 
 def ingested_hour(dsl, **kwargs):
-	'''Create the ingested hour variable.
+    '''Create the ingested hour variable.
     NOTE: This approach gives a linear error from O(-5e-4) to 0 over 24 hours
 
     INPUTS:
@@ -164,8 +178,15 @@ def ingested_hour(dsl, **kwargs):
         hour : np.ndarray (time,)
             Array containing the hour values for the measurements.
     '''
-	hour = dsl.time.values.astype('float32') / 3599916859392.0000000000000000
-	return hour
+    time = dsl.time.values
+    time_init = time[0]
+
+    date = datetime64_to_datetime(time_init)
+    date_delta = date - date.replace(hour=0,minute=0,second=0,microsecond=0)
+    print(date_delta)
+    
+    delta = (((time - time_init).astype(datetime.datetime) / 1e9 + date_delta.total_seconds()) / 3600 ) % 24 #conversion to hours
+    return delta
 
 def ingested_nshots(dsl, **kwargs):
 	'''Create the ingested nshots variable.
