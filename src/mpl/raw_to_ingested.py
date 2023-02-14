@@ -16,7 +16,7 @@ import glob
 
 
 
-def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
+def raw_to_ingested(dir_target,date,limit_height=True, c=299792458, data_loaded=None):
     '''Convert hourly mpl files to the Summit ingested format.
 
     The function will take hourly .nc files (created by mpl2nc) and concatenate them to produce a file matching the Summit ingested mpl format.
@@ -36,7 +36,12 @@ def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
         c : float : default=3e8 ; [m/s]
             The speed of light, in m/s, used to calculate the height bins. Summit uses 3e8, but mpl2nc uses the SI defined c=299792458m/s
 
+        data_loaded : None, xr.Dataset
+            If the mpl dataset has already been loaded, we can skip the loading files phase and go straight to the conversion.
+
     OUTPUTS:
+        ds : xr.Dataset
+            xarray dataset containing the ingested data
     '''
 
     # STEPS TO IMPLEMENT
@@ -47,16 +52,17 @@ def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
     # 5) Transfer attributes to new dataset, with metadata
     # 6) save the file
 
-    # get files in dir_target that match the date given
-    filename_fmt = f'{date.year:04}{date.month:02}{date.day:02}*.nc'
-    mpl_filenames = sorted(glob.glob(filename_fmt,root_dir=dir_target))
-    # if not 24 files are found, then the function will break and return None
-    if len(mpl_filenames) != 24:
-        print(f'raw_to_ingested: For full day, 24 files are expected. {len(mpl_filenames)} files matching date {date} in {dir_target=} found.')
-        return False
+    if data_loaded is None:
+        # get files in dir_target that match the date given
+        filename_fmt = f'{date.year:04}{date.month:02}{date.day:02}*.nc'
+        mpl_filenames = sorted(glob.glob(filename_fmt,root_dir=dir_target))
+        # if not 24 files are found, then the function will break and return None
+        if len(mpl_filenames) != 24:
+            print(f'raw_to_ingested: For full day, 24 files are expected. {len(mpl_filenames)} files matching date {date} in {dir_target=} found.')
+            return False
 
-    # load in the data to an xarray dataset
-    data_loaded = xr.open_mfdataset(str(os.path.join(dir_target, filename_fmt)), combine='nested',concat_dim='profile') # open_mfdataset allows glob strings
+        # load in the data to an xarray dataset
+        data_loaded = xr.open_mfdataset(str(os.path.join(dir_target, filename_fmt)), combine='nested',concat_dim='profile') # open_mfdataset allows glob strings
 
     # create ingested dataset, with appropriate dimensions and height coordinates
     ds = xr.Dataset()
