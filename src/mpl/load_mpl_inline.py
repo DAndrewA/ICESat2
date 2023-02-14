@@ -112,7 +112,7 @@ def mf_load_mpl_inline(fname_fmt, dir_root):
         n = os.path.join(dir_root,fname)
         print(f'loading {fname}')
         ds.append(load_mpl_inline(n))
-    ds = xr.combine_nested(datasets=ds, concat_dim='profile')
+    ds = xr.combine_nested(datasets=ds, concat_dim='profile', combine_attrs='override')
     return ds
 
 
@@ -120,6 +120,6 @@ def mf_load_mpl_inline(fname_fmt, dir_root):
 #fname = '/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mplraw_zip/202102110000.mpl.gz'
 #load_mpl_inline(fname)
 
-#dir_root = '/home/users/eeasm/_scripts/ICESat2/data/cycle10/mpl/mplraw_zip'
-#globstr = '20210211*'
+#dir_root = '/home/users/eeasm/_scripts/ICESat2/data/test_raw_to_ingested/mplraw_zip'
+#globstr = '20201127*.mpl.gz'
 #print(mf_load_mpl_inline(globstr,dir_root))
