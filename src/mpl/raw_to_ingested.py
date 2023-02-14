@@ -80,6 +80,8 @@ def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
         temp = l[3](data_loaded,**ingest_kwargs)
         if type(temp) == np.ndarray:
             temp = temp.astype(l[1])
+        else:
+            temp = l[1](temp)
         attrs = l[2]
         dims = l[0]
         da = xr.DataArray(temp,dims=dims,attrs=attrs)
@@ -148,7 +150,7 @@ def ingest_base_time(dsl, **kwargs):
             The variable for base_time in the ingested data.
     '''
     
-    base_time = dsl.time[0]
+    base_time = dsl.time.values[0]
     return base_time
 
 def ingested_time_offset(dsl, **kwargs):
