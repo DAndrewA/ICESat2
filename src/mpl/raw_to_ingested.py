@@ -87,6 +87,11 @@ def raw_to_ingested(dir_target,date,limit_height=True, c=299792458):
         da = xr.DataArray(temp,dims=dims,attrs=attrs)
         ds[k] = da
 
+    # create the dataset attributes
+    now = datetime.datetime.now(datetime.timezone.utc)
+    ATTRIBUTES_INGESTED['Date_created'] = f'{now.year:04}-{now.month:02}-{now.day:02}T{now.hour:02}:{now.minute:02}:{now.second:02} UTC'
+    ds = ds.assign_attrs(ATTRIBUTES_INGESTED)
+
     return ds
 
 
@@ -185,7 +190,6 @@ def ingested_hour(dsl, **kwargs):
 
     date = datetime64_to_datetime(time_init)
     date_delta = date - date.replace(hour=0,minute=0,second=0,microsecond=0)
-    print(date_delta)
     
     delta = (((time - time_init).astype(datetime.datetime) / 1e9 + date_delta.total_seconds()) / 3600 ) % 24 #conversion to hours
     return delta
@@ -453,6 +457,16 @@ VARIABLES_INGESTED = {
     'lat': [(), np.float32, {'long_name': 'north latitude', 'units': 'deg'}, ingested_lat],
     'lon': [(), np.float32, {'long_name': 'east longitude', 'units': 'deg'}, ingested_lon],
     'alt': [(), np.float32, {'long_name': 'altitude', 'units': 'm MSL'}, ingested_alt]
+}
+
+ATTRIBUTES_INGESTED = {
+    'Date_created' : None,
+    'Ingest_version' : 'Id: mpl/raw_to_ingested.py ,v 0.1 2023/02/14 ',
+    'comment' : 'DOE Atmospheric Radiation Measurement (ARM) Micropulse Lidar (MPL) deployed to Summit, Greenland, as part of the NSF-funded ICECAPS project',
+    'Author' : 'Dave Turner, NOAA National Severe Storms Laboratory, dave.turner@noaa.gov \n Andrew Martin, University of Leeds. eeasm@leeds.ac.uk ',
+    'instrument_serial_number' : 108,
+    'instrument_version' :  413,
+    'backscatter_comment' :'See Flynn et al. 2007 Optics Express paper for details on how to interpret the two backscatter profiles'
 }
 
 '''
