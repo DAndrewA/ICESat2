@@ -3,20 +3,23 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'eeasm_icesat'
+name = 'eeasmicesat'
 version = '0.0.1'
 dependencies = [
     'icepyx',
     'mpl2nc',
-    'gzip',
-    'os',
     'datetime',
     'xarray',
     'numpy',
     'netCDF4',
-    'glob'
 ]
 
 [tool.setuptools.packages.find]
 where = ['src']
-exclude = ['*.sh','*.cdf','*.ipynb']
+exclude = [
+    '*.sh',
+    '*.cdf',
+    '*.ipynb',
+    'neely_heather_code/*',
+    'helper/*'
+]
