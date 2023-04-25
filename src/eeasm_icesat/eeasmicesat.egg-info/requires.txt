@@ -1,6 +1,0 @@
-icepyx
-mpl2nc
-datetime
-xarray
-numpy
-netCDF4

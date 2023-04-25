@@ -1,5 +1,0 @@
-atl09
-helper
-mmcr
-mpl
-neely_heather_code
