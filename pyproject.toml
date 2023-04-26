@@ -3,7 +3,7 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'eeasmicesat'
+name = 'eeasm_icesat'
 version = '0.0.1'
 dependencies = [
     'icepyx',
