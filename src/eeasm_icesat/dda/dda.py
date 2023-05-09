@@ -95,7 +95,7 @@ def convolve_masked(data, mask, kernal, **kwargs):
     OUTPUTS:
 
     '''
-    convargs = {}
+    convargs = {'mode':'same', 'boundary':'symm'} # default convargs
     for arg in ['mode','boundary','fillvalue']:
         if arg in kwargs:
             convargs[arg] = kwargs[arg]
@@ -105,17 +105,19 @@ def convolve_masked(data, mask, kernal, **kwargs):
     masked_data[mask] = 0
     density = signal.convolve2d(masked_data,kernal, **convargs)
 
-    return density/norm, norm
+    # normalise density field
+    density[norm>0] = density[norm>0] / norm[norm>0]
+    return density, norm
 
 
-def calc_thresholds(data, mask, otherargs):
+def calc_thresholds(data, mask):
     raise NotImplementedError
 
 
-def dda(in_data, in_dx=1, in_dy=1,
-        kernal_args=None, density_args=None, threshold_args=None, 
+def dda(in_data,
+        kernal_args={}, density_args={}, threshold_args={}, 
         two_pass=False,
-        kernal_args2=None, density_args2=None, threshold_args2=None):
+        kernal_args2={}, density_args2={}, threshold_args2={}):
     '''Function to run the DDA-atmos algortihm on the input ndarray.
     
     This will be the function to call in order to perform the full DDA-atmos algorithm on the input data. It will allow the user to configure the kernal, implement their own density function (if they so wish) and designate how the cloud-threshoilding is performed.
@@ -123,12 +125,6 @@ def dda(in_data, in_dx=1, in_dy=1,
     INPUTS:
         in_data : np.ndarray (dtype=float)
             2-dimensional numpy ndarray which will contain the input data for the DDA-atmos algorithm.
-
-        in_dx : float, np.timedelta64
-            The horizontnal coordinate scale associated with the data. This can either be a distance or a time. Defaults to unity (kernal can be determined pixel-wise)
-
-        in_dy: float, np.timedelta64
-            The vertical coordinate scale associated with the data. This can either be a distance or a time. Defaults to unity (kernal can be determined pixel-wise)
 
         kernal_args : dict
             Dictionary containing the arguments for the kernal computation. If 'kernalfunc' is not a specified key, then the default Gaussian kernal will be used. Otherwise, additional kernal functions can be specified.
@@ -176,16 +172,16 @@ def dda(in_data, in_dx=1, in_dy=1,
             kernal_args['kernalfunc'] = kernal_Gaussian
     else:
         kernal_args = {'kernalfunc':kernal_Gaussian}
-    kernal = kernal_args['kernalfunc'](kernal_args)
+    kernal = kernal_args['kernalfunc'](**kernal_args)
 
     # calculate the density field from the data using the masked convolution
     mask = np.isnan(in_data)
-    density, norm = convolve_masked(in_data, mask, kernal, density_args)
+    density, norm = convolve_masked(in_data, mask, kernal, **density_args)
     return_data['density1'] = density
 
-
+    return return_data
     # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
-    thresholds = calc_thresholds(density, mask, threshold_args)
+    thresholds = calc_thresholds(density, mask, **threshold_args)
     cloud_mask = np.greater(density, thresholds)
 
     if two_pass:
@@ -196,18 +192,18 @@ def dda(in_data, in_dx=1, in_dy=1,
                 kernal_args2['kernalfunc'] = kernal_Gaussian
         else:
             kernal_args2 = kernal_args
-        kernal2 = kernal_args2['kernalfunc'](kernal_args2)
+        kernal2 = kernal_args2['kernalfunc'](**kernal_args2)
     
         # TODO: implement noise in place of original clouds, rather than masked as 0 values (see ATBD pg135)
         if density_args2 is None:
             density_args2 = density_args
         mask2 = np.logical_or(cloud_mask,mask)
-        density2, norm = convolve_masked(in_data, mask2, kernal2, density_args2)
+        density2, norm = convolve_masked(in_data, mask2, kernal2, **density_args2)
         return_data['density2'] = density2
 
         if threshold_args2 is None:
             threshold_args2 = threshold_args
-        thresholds2 = calc_thresholds(density2, mask2, threshold_args2)
+        thresholds2 = calc_thresholds(density2, mask2, **threshold_args2)
         cloud_mask2 = np.greater(density2, thresholds2)
 
 
