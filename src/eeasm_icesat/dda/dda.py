@@ -11,6 +11,7 @@ I'm aiming to write the script in such a way that functions can be modularly sel
 
 import numpy as np
 from scipy import signal
+from skimage.morphology import remove_small_objects
 
 
 def kernal_Gaussian(sigma_y, sigma_x=None, a_m=None,
@@ -46,6 +47,8 @@ def kernal_Gaussian(sigma_y, sigma_x=None, a_m=None,
         m : float
             Width of the kernal in pixels
 
+        **kwargs : any additional arguments. These won't be used however.
+
     OUTPUTS:
         kernal : np.ndarray
             2-dimensional numpy array for the Gaussian kernal.
@@ -66,7 +69,7 @@ def kernal_Gaussian(sigma_y, sigma_x=None, a_m=None,
     
     gaussian = lambda x,y,sx,sy: np.exp(-0.5 * (np.power(x/sx, 2) + np.power(y/sy, 2)))
     kernal = gaussian(X,Y,sigma_x,sigma_y)
-    return kernal
+    return kernal / np.sum(kernal) # return the normalised version of the kernal
 
 
 def convolve_masked(data, mask, kernal, **kwargs):
@@ -74,6 +77,8 @@ def convolve_masked(data, mask, kernal, **kwargs):
     
     The convention is that masked values are 1s in mask, and the data to convolve is 0s in the mask.
     For a convolution on masked data, this is essentially treating the nan values as 0, but also calculating the changed kernal normalisation due to the mask.
+
+    !!!! The normalised density field is returned !!!!
 
     INPUTS:
         data : np.ndarray
@@ -100,7 +105,11 @@ def convolve_masked(data, mask, kernal, **kwargs):
     masked_data[mask] = 0
     density = signal.convolve2d(masked_data,kernal, **convargs)
 
-    return density, norm
+    return density/norm, norm
+
+
+def calc_thresholds(data, mask, otherargs):
+    raise NotImplementedError
 
 
 def dda(in_data, in_dx=1, in_dy=1,
@@ -144,13 +153,24 @@ def dda(in_data, in_dx=1, in_dy=1,
             Same as threshold_args, except for the second pass. If not specified, threshold_args will be used.
 
     OUTPUTS:
+        return_data : dict : see following descriptions
+
+        density1 : np.ndarray
+            The calculated density field from the first pass
+
+        density2 : np.ndarray
+            The calculated density field from the second pass
+
+        cloud_mask : np.ndarray
+            The boolean cloud mask for the whole algorithm. This is the output that has had small clusters removed, so cloud_mask_passes can't be directly derived from cloud_mask
+
+        cloud_mask_passes : np.ndarray
+            Cloud mask containing data for both passes. 0: no cloud; 1: cloud in pass 1; 2: cloud in pass 2; 3: cloud in both pass 1 and pass 2
 
     '''
+    return_data = {}
 
-    # STEP 1: load in data (pg51)
-    # STEP 2: Calculate density (pg58)
-        # 2.1: Calculate kernal from parameters
-    # ensure that a function is designated for the kernalfunc parameter of kernal_args.
+    # calculate the kernal from the given parameters
     if kernal_args is not None:
         if 'kernalfunc' not in kernal_args:
             kernal_args['kernalfunc'] = kernal_Gaussian
@@ -158,8 +178,45 @@ def dda(in_data, in_dx=1, in_dy=1,
         kernal_args = {'kernalfunc':kernal_Gaussian}
     kernal = kernal_args['kernalfunc'](kernal_args)
 
-        # 2.2: Normalise kernal?
-        # 2.3: Compute density with masked data
-    # STEP 3: Filter for clouds (pg70)
-        # B.1: threshold(window) = bias + sensitivity*(mth quantile in window)
-    # STEP 4: artifact removal (pg98)
+    # calculate the density field from the data using the masked convolution
+    mask = np.isnan(in_data)
+    density, norm = convolve_masked(in_data, mask, kernal, density_args)
+    return_data['density1'] = density
+
+
+    # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
+    thresholds = calc_thresholds(density, mask, threshold_args)
+    cloud_mask = np.greater(density, thresholds)
+
+    if two_pass:
+
+        # calculate the second kernal
+        if kernal_args2 is not None:
+            if 'kernalfunc' not in kernal_args2:
+                kernal_args2['kernalfunc'] = kernal_Gaussian
+        else:
+            kernal_args2 = kernal_args
+        kernal2 = kernal_args2['kernalfunc'](kernal_args2)
+    
+        # TODO: implement noise in place of original clouds, rather than masked as 0 values (see ATBD pg135)
+        if density_args2 is None:
+            density_args2 = density_args
+        mask2 = np.logical_or(cloud_mask,mask)
+        density2, norm = convolve_masked(in_data, mask2, kernal2, density_args2)
+        return_data['density2'] = density2
+
+        if threshold_args2 is None:
+            threshold_args2 = threshold_args
+        thresholds2 = calc_thresholds(density2, mask2, threshold_args2)
+        cloud_mask2 = np.greater(density2, thresholds2)
+
+
+        return_data['cloud_mask_passes'] = cloud_mask.astype(int) + 2*cloud_mask2.astype(int)
+
+        # the final cloud mask is the combined set of determined cloud pixels from run 1 and run 2
+        cloud_mask = np.logical_or(cloud_mask, cloud_mask2)
+
+    cloud_mask = remove_small_objects(cloud_mask,min_size=300)
+    return_data['cloud_mask'] = cloud_mask
+    
+    return return_data
