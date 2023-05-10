@@ -43,16 +43,16 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
     ycoor = ds.coords[coord_height]
 
     # get the index of the lowest bin we want to consider
-    y_min_i = np.sum(ycoor < ground_clearance)
+    y_min_i = int(np.sum(ycoor < ground_clearance))
     # get the bin numbers for the separation and depth parameters
     dy = ycoor[1] - ycoor[0]
-    min_depth_bins = np.round(min_depth/dy)
-    min_sep_bins = np.round(min_sep/dy)
-    bins_buffer = np.max(min_depth_bins,min_sep_bins)
+    min_depth_bins = int(np.round(min_depth/dy))
+    min_sep_bins = int(np.round(min_sep/dy))
+    bins_buffer = int(np.max([min_depth_bins,min_sep_bins]))
 
     # extract the cloud mask numpy array with the indices (x,y)
     cloud_mask = ds.transpose(coord_x,coord_height,...).cloud_mask.values
-
+    print(f'dda.compute_cloud_layers: {cloud_mask.shape=}')
     layer_bot = np.zeros((numLayers, xcoor.size))*np.nan
     layer_top = np.zeros((numLayers, xcoor.size))*np.nan
     #layer_conf_dens = np.zeros((numLayers, xcoor.size))
@@ -62,11 +62,10 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
     cloud_flag_atm = np.zeros(xcoor.size)
 
     # go through each vertical profile
-    for i,profile in cloud_mask:
+    for i,profile in enumerate(cloud_mask):
         cm_up = np.zeros_like(profile)
         cm_down = np.zeros_like(profile)
 
-        cumsum = np.cumsum(profile)
         #upwards pass
         inCloud = False
         for j,b in enumerate(profile[y_min_i:-bins_buffer]):
@@ -74,30 +73,29 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
             j = j+y_min_i
             if b and not inCloud:
                 # if there are min_depth_bins 1s in a row, this should evaluate as True
-                if cumsum[j+min_depth_bins-1] - cumsum[j] == min_depth_bins:
+                if np.all(profile[j:j+min_depth_bins] == 1):
                     inCloud=True
             elif not b and inCloud:
                 # if there are min_sep_bins 0s in a row, this should evaluate as True
-                if cumsum[j+min_sep_bins-1] - cumsum[j] == 0:
+                if np.all(profile[j:j+min_sep_bins] == 0):
                     inCloud = False
             if inCloud:
                 cm_up[j] = 1
 
         # downwards pass
         inCloud = False
-        cumsum = np.cumsum(profile[::-1])
         for j,b in enumerate(profile[:y_min_i+bins_buffer:-1]):
             jdash = profile.size-j
             if b and not inCloud:
                 # if there are min_depth_bins 1s in a row, this should evaluate as True
-                if cumsum[j+min_depth_bins-1] - cumsum[j] == min_depth_bins:
+                if np.all(profile[jdash-min_depth_bins:jdash] == 1):
                     inCloud=True
             elif not b and inCloud:
                 # if there are min_sep_bins 0s in a row, this should evaluate as True
-                if cumsum[j+min_sep_bins-1] - cumsum[j] == 0:
+                if np.all(profile[jdash-min_sep_bins:jdash] == 0):
                     inCloud = False
             if inCloud:
-                cm_down[jdash] = 1
+                cm_down[jdash-1] = 1
 
         # consolidate up and down passes
         cm = np.logical_or(cm_up,cm_down)
@@ -107,7 +105,7 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
         n_layers = 0
         inCloud = False
         for j,b in enumerate(cm[::-1]):
-            jdash = profile.size-j
+            jdash = profile.size-j-1
             # detect cloud tops
             if b and not inCloud:
                 n_layers += 1
@@ -118,15 +116,24 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
                 layer_bot[n_layers-1,i] = ycoor[jdash+1] # +1 as its the previous cell containing cloud
                 inCloud = False
                 if n_layers >= numLayers:
-                    break
+                    print('dda.compute_cloud_layers: max number of cloud layers reached, continuing...')
+                    continue
         if inCloud: # this should only run if ground_clearance < 0.5dy
             print('compute_cloud_layers: ground clearance set too low, cloud detected at ground level.')
             layer_bot[n_layers-1,i] = 0
         cloud_flag_atm[i] = n_layers
 
     # setup dimension and coordinates for ds to accomodate cloud layers
-    ds = ds.expand_dims(dim={'layer': np.arrange(numLayers)})
-    ds['layer_bot'] = layer_bot
-    ds['layer_top'] = layer_top
-    ds['cloud_flag_atm'] = cloud_flag_atm
-    return ds
+    # the use of newds is to ensure not all variables require the layer coordinate
+    newds = ds.expand_dims(dim={'layer': np.arange(numLayers)})
+    for k in list(ds.keys()):
+        newds[k] = (ds[k].dims,ds[k].values)
+    
+    newds['layer_bot'] = (['layer',coord_x],layer_bot)
+    newds['layer_top'] = (['layer',coord_x],layer_top)
+    newds['cloud_flag_atm'] = ([coord_x],cloud_flag_atm)
+
+    newds['cm_up'] = ([coord_height], cm_up)
+    newds['cm_down'] = ([coord_height],cm_down)
+    newds['cm'] = ([coord_height],cm)
+    return newds

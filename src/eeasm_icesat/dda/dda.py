@@ -110,17 +110,14 @@ def convolve_masked(data, mask, kernal, **kwargs):
     return density, norm
 
 
-def calc_thresholds(data, mask, downsample, segment_length, bias, sensitivity, quantile, **kwargs):
+def calc_thresholds(data, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, **kwargs):
     '''Function to calculate the threshold for cloud pixels in the backscatter data.
     
-    This function represents the synthesis of methods A and B in the ATL04/09 ATBD part 2 [https://doi.org/10.5067/48PJ5OUJOP4C]
+    This function represents the synthesis of methods A and B in the ATL04/09 ATBD part 2 [https://doi.org/10.5067/48PJ5OUJOP4C]. The default arguments are for method B (although the bias and sensitivity values likely need changing for MPL data)
 
     INPUTS:
         data : np.ndarray
             2 dimesnsional (nxm) array containing the density field calculated in the DDA algortithm.
-
-        mask : np.ndarray (dtype=boolean)
-            2 dimensional array with the same shape as data, that contains the boolean mask for disregarded pixels. 1s denote values to ignore, 0s denote valid values.
 
         downsample : int
             The number of bins (sqaured) to downsample the input data by. The downsampling takes the maximum value within a (dxd) square to use in the quantile caluclation. Here, d = 2*downsample+1 to ensure the max value is centered on the correct pixel. A value of 0 performs no downsampling.
@@ -145,18 +142,20 @@ def calc_thresholds(data, mask, downsample, segment_length, bias, sensitivity, q
 
     '''
     # perform the downsampling first on a profile-by-profile basis
-    downsample_matrix = np.zeros_like(data)
+    downsample_matrix = data.copy()
     ny,nx = data.shape
-    print('dda.calc_thresholds: downsampling matrix')
-    for xx in range(nx):
-        # ensure the indices lie within the bounds of data
-        ileft = np.max([0,xx-downsample])
-        iright = np.min([nx,xx+downsample])
-        for yy in range(ny):
-            ibot = np.max([0,yy-downsample])
-            itop = np.min([ny,yy+downsample])
-            # ignores nan values, unless all values are nan and then return nan.
-            downsample_matrix[yy,xx] = np.nanmax(data[ibot:itop,ileft:iright])
+    print(f'{downsample=}')
+    if downsample > 0:
+        print('dda.calc_thresholds: downsampling matrix')
+        for xx in range(nx):
+            # ensure the indices lie within the bounds of data
+            ileft = np.max([0,xx-downsample])
+            iright = np.min([nx,xx+downsample])
+            for yy in range(ny):
+                ibot = np.max([0,yy-downsample])
+                itop = np.min([ny,yy+downsample])
+                # ignores nan values, unless all values are nan and then return nan.
+                downsample_matrix[yy,xx] = np.nanmax(data[ibot:itop,ileft:iright])
 
     # now need to access the downsampled matrix and perform the quantile calculations...
     print('dda.calc_thresholds: calculating thresholds')
@@ -174,7 +173,7 @@ def calc_thresholds(data, mask, downsample, segment_length, bias, sensitivity, q
         # extract collums that have independant maximum values per pixel
         else:
             quantileData = downsample_matrix[:,xx-segment_length*delta:xx+segment_length*delta+1:delta]
-        quantile_value = np.nanquantile(quantileData,quantile)
+        quantile_value = np.nanquantile(quantileData,quantile/100)
         thresholds[xx] = bias + sensitivity*quantile_value
 
     return thresholds
@@ -184,7 +183,7 @@ def calc_thresholds(data, mask, downsample, segment_length, bias, sensitivity, q
 
 def dda(in_data,
         kernal_args={}, density_args={}, threshold_args={}, 
-        two_pass=False,
+        two_pass=True,
         kernal_args2={}, density_args2={}, threshold_args2={}):
     '''Function to run the DDA-atmos algortihm on the input ndarray.
     
@@ -245,10 +244,11 @@ def dda(in_data,
     # calculate the density field from the data using the masked convolution
     mask = np.isnan(in_data)
     density, norm = convolve_masked(in_data, mask, kernal, **density_args)
-    return_data['density1'] = density
+    return_data['density_pass1'] = density
 
     # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
-    thresholds = calc_thresholds(density, mask, **threshold_args)
+    thresholds = calc_thresholds(density, **threshold_args)
+    return_data['thresholds1'] = thresholds
     cloud_mask = np.greater(density, thresholds)
 
     if two_pass:
@@ -266,11 +266,12 @@ def dda(in_data,
             density_args2 = density_args
         mask2 = np.logical_or(cloud_mask,mask)
         density2, norm = convolve_masked(in_data, mask2, kernal2, **density_args2)
-        return_data['density2'] = density2
+        return_data['density_pass2'] = density2
 
         if threshold_args2 == {}:
             threshold_args2 = threshold_args
-        thresholds2 = calc_thresholds(density2, mask2, **threshold_args2)
+        thresholds2 = calc_thresholds(density2, **threshold_args2)
+        return_data['thresholds2'] = thresholds2
         cloud_mask2 = np.greater(density2, thresholds2)
 
 
