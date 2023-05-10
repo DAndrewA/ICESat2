@@ -110,8 +110,76 @@ def convolve_masked(data, mask, kernal, **kwargs):
     return density, norm
 
 
-def calc_thresholds(data, mask):
-    raise NotImplementedError
+def calc_thresholds(data, mask, downsample, segment_length, bias, sensitivity, quantile, **kwargs):
+    '''Function to calculate the threshold for cloud pixels in the backscatter data.
+    
+    This function represents the synthesis of methods A and B in the ATL04/09 ATBD part 2 [https://doi.org/10.5067/48PJ5OUJOP4C]
+
+    INPUTS:
+        data : np.ndarray
+            2 dimesnsional (nxm) array containing the density field calculated in the DDA algortithm.
+
+        mask : np.ndarray (dtype=boolean)
+            2 dimensional array with the same shape as data, that contains the boolean mask for disregarded pixels. 1s denote values to ignore, 0s denote valid values.
+
+        downsample : int
+            The number of bins (sqaured) to downsample the input data by. The downsampling takes the maximum value within a (dxd) square to use in the quantile caluclation. Here, d = 2*downsample+1 to ensure the max value is centered on the correct pixel. A value of 0 performs no downsampling.
+
+        segment_length : int
+            The number of vertical profiles (after downsampling) to consider in the moving window for the quantile calculation. The number will be 2*segment_length+1, to ensure that the measurement is always centered on the correct profile.
+
+        bias : float
+            The offset bia used in calculating the threshold.
+
+        sensitivity : float
+            The linear coefficient that multiplies the quantile value in the threshold calculation.
+
+        quantile : float
+            Value between 0 and 100 (in %), the quantile value that is to be used in the threshold calculation.
+
+        kwargs : any additional arguments won't be used.
+
+    OUTPUTS:
+        threshold : np.ndarray
+            The threshold value for clouds in each vertical profile in data. (1xm) matrix.
+
+    '''
+    # perform the downsampling first on a profile-by-profile basis
+    downsample_matrix = np.zeros_like(data)
+    ny,nx = data.shape
+    print('dda.calc_thresholds: downsampling matrix')
+    for xx in range(nx):
+        # ensure the indices lie within the bounds of data
+        ileft = np.max([0,xx-downsample])
+        iright = np.min([nx,xx+downsample])
+        for yy in range(ny):
+            ibot = np.max([0,yy-downsample])
+            itop = np.min([ny,yy+downsample])
+            # ignores nan values, unless all values are nan and then return nan.
+            downsample_matrix[yy,xx] = np.nanmax(data[ibot:itop,ileft:iright])
+
+    # now need to access the downsampled matrix and perform the quantile calculations...
+    print('dda.calc_thresholds: calculating thresholds')
+    # NOTE: there are two approaches to the quantile calculation. Either the nans can be ignored, or considered as 0s. This will obvoiously impact the number of points being considered and thus the eventual quantile value. Change the following line ONLY to investigate this behaviour.
+    downsample_matrix[np.isnan(downsample_matrix)] = 0 # this includes the nan values in the quantile calculation.
+    thresholds = np.zeros(nx)
+    for xx in range(nx):
+        # handle edge cases:
+        delta = 2*segment_length+1
+        if xx-segment_length*delta < 0 or xx+segment_length*delta >= nx:
+            for nn in np.arange(-segment_length,segment_length+1):
+                quantileData = np.array([])
+                if xx+nn*delta > 0 and xx+nn*delta<nx:
+                    quantileData = np.concatenate((quantileData,downsample_matrix[:,xx+nn*delta]))
+        # extract collums that have independant maximum values per pixel
+        else:
+            quantileData = downsample_matrix[:,xx-segment_length*delta:xx+segment_length*delta+1:delta]
+        quantile_value = np.nanquantile(quantileData,quantile)
+        thresholds[xx] = bias + sensitivity*quantile_value
+
+    return thresholds
+
+        
 
 
 def dda(in_data,
@@ -124,7 +192,7 @@ def dda(in_data,
 
     INPUTS:
         in_data : np.ndarray (dtype=float)
-            2-dimensional numpy ndarray which will contain the input data for the DDA-atmos algorithm.
+            2-dimensional (nxm) numpy ndarray which will contain the input data for the DDA-atmos algorithm. There will be m vertical profiles of n height bins.
 
         kernal_args : dict
             Dictionary containing the arguments for the kernal computation. If 'kernalfunc' is not a specified key, then the default Gaussian kernal will be used. Otherwise, additional kernal functions can be specified.
@@ -167,7 +235,7 @@ def dda(in_data,
     return_data = {}
 
     # calculate the kernal from the given parameters
-    if kernal_args is not None:
+    if kernal_args != {}:
         if 'kernalfunc' not in kernal_args:
             kernal_args['kernalfunc'] = kernal_Gaussian
     else:
@@ -179,7 +247,6 @@ def dda(in_data,
     density, norm = convolve_masked(in_data, mask, kernal, **density_args)
     return_data['density1'] = density
 
-    return return_data
     # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
     thresholds = calc_thresholds(density, mask, **threshold_args)
     cloud_mask = np.greater(density, thresholds)
@@ -187,7 +254,7 @@ def dda(in_data,
     if two_pass:
 
         # calculate the second kernal
-        if kernal_args2 is not None:
+        if kernal_args2 != {}:
             if 'kernalfunc' not in kernal_args2:
                 kernal_args2['kernalfunc'] = kernal_Gaussian
         else:
@@ -195,13 +262,13 @@ def dda(in_data,
         kernal2 = kernal_args2['kernalfunc'](**kernal_args2)
     
         # TODO: implement noise in place of original clouds, rather than masked as 0 values (see ATBD pg135)
-        if density_args2 is None:
+        if density_args2 == {}:
             density_args2 = density_args
         mask2 = np.logical_or(cloud_mask,mask)
         density2, norm = convolve_masked(in_data, mask2, kernal2, **density_args2)
         return_data['density2'] = density2
 
-        if threshold_args2 is None:
+        if threshold_args2 == {}:
             threshold_args2 = threshold_args
         thresholds2 = calc_thresholds(density2, mask2, **threshold_args2)
         cloud_mask2 = np.greater(density2, thresholds2)
