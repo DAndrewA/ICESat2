@@ -4,7 +4,7 @@ import xarray as xr
 import numpy as np
 import icepyx as ipx
 
-def load_xarray_from_ATL09(filename,subsetVariables=None,createNan=True):
+def load_xarray_from_ATL09(filename,subsetVariables=None,get_low_rate=False, subsetVariables_low=False, createNan=True, verbose=False):
     '''Function to load in ATL09 data to xarray format from the hdf5 file format.
     
     The function will first open the h5 file and then create a high-frequency and low-frequency xr.Dataset objects.
@@ -23,106 +23,35 @@ def load_xarray_from_ATL09(filename,subsetVariables=None,createNan=True):
         filename : string
             filename of the .h5 ATL09 file to be loaded.
 
-        subsetVariables : None, itterable of strings
+        subsetVariables : None, iterable of strings
             Itterable containing strings of the variables to be extracted from the h5 file's profiles.
+
+        get_low_rate : bool
+            Flag for whether or not to get data from both the high and low rate variables.
+
+        subsetVariables_low : None, iterable of strings
+            Iterable containing  strings of the variable names to be extracted from the ATL09 low_rate parts of the profiles.
 
         createNan : boolean
             Flag for whether or not to utilise the _FillValue attribute in data to create NaN values in the data. If True, will apply da.where(da < _FillValue), if False then the data won't be changed upon loading.
 
+        verbose : bool
+            Flag for whether or not to print data related to the laoding process.
+
     OUTPUTS:
-        ds : xr.DataSet object
-            The xarray dataset containing the ATL09 data, with profile, time_index, height, layer and surface type as coordinates.
+        ds_high : xr.Dataset
+            The xarray dataset containing the high_rate ATL09 data, with profile, time_index, height, layer and surface type as coordinates.
+
+        ds_low : xr.Dataset
+            xarray Dataset containing the low_rate ATL09 data.
     '''
 
-    subset_default = ('cab_prof','delta_time','density_pass1','density_pass2','ds_va_bin_h','latitude','longitude','prof_dist_x','prof_dist_y','range_to_top','surface_bin','surface_h_dens','surface_height','surface_width')
-    subset_clouds = ('apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag') # TODO introduce functionality for subsetting variables
+    ds_high = load_rate(filename=filename, rate='high_rate', subset=subsetVariables, createNan=createNan, verbose=verbose)
+    ds_low = None
+    if get_low_rate:
+        ds_low = load_rate(filename=filename, rate='low_rate', subset=subsetVariables_low, createNan=createNan, verbose=verbose)
 
-    ds = xr.Dataset()
-    with h5.File(filename,'r') as f:
-        # start by extracting the coordinate dimensions: profile, time, height and layer
-        profile = np.array([1,2,3])
-        height = f['profile_1']['high_rate']['ds_va_bin_h'][()]
-        layer = np.arange(10)
-        surface_type = np.arange(5)
-
-        # delta_time differs between profiles. As such, we need to find the length of the time dimensions and pick the longest one
-        time_lengths = np.zeros((3,))
-        for p in profile:
-            time_lengths[p-1] = int(f[f"profile_{p}"]['high_rate']['delta_time'].size)
-        time_index = np.arange(np.max(time_lengths)).astype(int)
-
-        # add these to the dataset object
-        coords = {'profile':profile, 'time_index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
-        ds = ds.assign_coords(coords)
-        print(ds.dims)
-
-        # ASSUMES NONE OF THE COORDINATES HAVE THE SAME SIZE: REQUIRE THAT time!=700 AND ALL WILL BE FINE... 
-        dim_lengths = {v.size: k for k,v in coords.items()}
-        for l in time_lengths: # include the additional time lengths for the labelling of coordinates in the DataArrays.
-            dim_lengths[l] = 'time_index'
-
-        max_time_length = int(np.max(time_lengths))
-        # for each variable in the profile_[n]/high_rate/ part of the file, we need to create an xr.DataArray to hold its information for all 3 profiles, with the other required dimensions included.
-        for k in f['profile_1']['high_rate'].keys():
-            # if subsetting of variables is being used, only include desired variables.
-            if subsetVariables is not None:
-                if k not in subsetVariables:
-                    continue
-            
-            # determine the shape the values need to take on
-            shape_inprofile = list(f['profile_1']['high_rate'][k].shape)
-            # generate the list of axis names for the values
-            axis_names = [dim_lengths[v] for v in shape_inprofile]
-            # if 'time index' is in axis_names, we need to ensure that length is set to max_time_length
-            if 'time_index' in axis_names:
-                shape_inprofile[0] = max_time_length
-            vals = np.zeros(shape=(3,*shape_inprofile))
-
-            # populate vals with the values from the three profiles
-            for p in profile:
-                # if time_index is being used, we need to know how many NaNs we need to pad the data with:
-                insert_vals = f['profile_' + str(p)]['high_rate'][k][()]
-                if 'time_index' in axis_names:
-                    padding_length = int(max_time_length - time_lengths[p-1])
-                    if padding_length:
-                        padding_shape = [int(v) for v in insert_vals.shape]
-                        padding_shape[0] = padding_length
-                        padding_nan = np.empty(padding_shape) * np.nan
-                        insert_vals = np.concatenate((insert_vals,padding_nan))
-
-                vals[p-1,...] = insert_vals
-
-            # regenerate the list of axis names for vals
-            axis_names = [dim_lengths[v] for v in vals.shape]
-            print(f'{k} | {vals.shape}: {axis_names}')
-
-            # generate attributes for the xarray DataArray
-            #attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs.items()}
-            attrs = {}
-            for j,v in f['profile_1']['high_rate'][k].attrs.items():
-                if type(v) == np.bytes_:
-                    # solution from anon582847382: https://stackoverflow.com/questions/23618218/numpy-bytes-to-plain-string
-                    v = v.decode('UTF-8')
-                attrs[j] = v
-
-            # if _FillValue is in the keys, extract the value
-            fillValue = None
-            if '_FillValue' in attrs:
-                fillValue = attrs['_FillValue'][0]
-
-            # need to subset the coordinates based on which are present in vals
-            da_coords = {v: coords[v] for v in axis_names}
-
-            # create the DataArray and append it to the Dataset
-            da = xr.DataArray(vals,coords=da_coords, dims=axis_names, attrs=attrs)
-
-            # if createNan is active, and fillValue is not None, then we want to create Nan values in the data array
-            if createNan and fillValue is not None:
-                da = da.where(da < fillValue)
-
-            ds[k] = da
-
-        return ds
+    return ds_high, ds_low
 
 
 def load_rate(filename,rate,subset,createNan,verbose=False):
@@ -243,17 +172,9 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
         return ds
 
 
+SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm')
+SUBSET_CLOUDS = (*SUBSET_DEFAULT,'apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag')
 
-
-
-
-
-
-
-
-
-
-SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','density_pass2','surface_height','layer_top','layer_bot', 'cloud_flag_atm')
 
 '''Example code
 fname = '/home/users/eeasm/ICESAT_data/RGT0749_Cycles_10-12-bigger/processed_ATL09_20210211004659_07491001_005_01.h5'
