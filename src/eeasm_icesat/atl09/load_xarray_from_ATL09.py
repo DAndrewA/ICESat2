@@ -125,31 +125,132 @@ def load_xarray_from_ATL09(filename,subsetVariables=None,createNan=True):
         return ds
 
 
-def load_xarray_from_ATL09_icepyx(filename, pattern=None, wanted_vars=None):
-    '''Function to load in ATL09 datafiles to xarray format, utilising the icepyx.Read object.
+def load_rate(filename,rate,subset,createNan,verbose=False):
+    '''Function to load in the ATL09 subset variables from filename for the given rate.
 
-    Given the limitations of icepyx release 0.6.4 (see Github issue #397) I've edited the icesat_summit version of icepyx.Read to allow ATL09 to be laoded.
-    In this situation, each profile is assigned to a 'spot':
-        1: profile_1/high_rate
-        2: " "_2/" "
-        3: " "_3/" "
-        4: profile_1/low_rate
-        5: " "_2/" "
-        6: " "_3/" "
+    This function will perform what load_xarray_from_ATL09() did as of commit 7a75a7f, except with the ability to select the specific rate from which the variables are taken. In this way, load_xarray_from_ATL09 is now a wrapper function for load_rate.
+
+    INPUTS:
+        filename : string
+            Full filename with extension for the ATL09 .h5 file to be loaded.
+
+        rate : string, ['high_rate', 'low_rate']
+            String denoting which rate to use in the profile.
+
+        subset : None, iterable of strings
+            If None, select all variables in the given rate. Otherwise, an iterable of all the desired variables from the ATL09 file.
+
+        createNan : bool
+            Flag to create Nan values in the data or to use the _FillValue when encountering erroneous data.
+
+        verbose : bool
+            Flag for whether or not to print information as function progresses.
+    
+    OUTPUTS:
+        ds : xr.Dataset
+            dataset containing the loaded variables for the given rate, as well as the desired dimensions.
     '''
-    if pattern is None:
-        pattern = "processed_ATL{product:2}_{datetime:%Y%m%d%H%M%S}_{rgt:4}{cycle:2}{orbitsegment:2}_{version:3}_{revision:2}.h5"
-    product = 'ATL09'
+    if verbose:
+        print('='*25)
+        print(f'load_rate({filename=}, {rate=}, {subset=}, {createNan=}, {verbose=})')
 
-    reader = ipx.Read(data_source=filename, product=product, filename_pattern=pattern)
+    ds = xr.Dataset()
+    with h5.File(filename,'r') as f:
+        # start by extracting the coordinate dimensions: profile, time, height and layer
+        profile = np.array([1,2,3])
+        height = f['profile_1'][rate]['ds_va_bin_h'][()]
+        layer = np.arange(10)
+        surface_type = np.arange(5)
 
-    # add the desired variables
-    if wanted_vars is None:
-        wanted_vars = ['longitude','latitude','cab_prof','density_pass2']
-    reader.vars.append(var_list=wanted_vars)
+        # delta_time differs between profiles. As such, we need to find the length of the time dimensions and pick the longest one
+        time_lengths = np.zeros((3,))
+        for p in profile:
+            time_lengths[p-1] = int(f[f"profile_{p}"][rate]['delta_time'].size)
+        time_index = np.arange(np.max(time_lengths)).astype(int)
 
-    ds = reader.load()
-    return ds
+        # add these to the dataset object
+        coords = {'profile':profile, 'time_index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
+        ds = ds.assign_coords(coords)
+        print(ds.dims)
+
+        # ASSUMES NONE OF THE COORDINATES HAVE THE SAME SIZE: REQUIRE THAT time!=700 AND ALL WILL BE FINE... 
+        dim_lengths = {v.size: k for k,v in coords.items()}
+        for l in time_lengths: # include the additional time lengths for the labelling of coordinates in the DataArrays.
+            dim_lengths[l] = 'time_index'
+
+        max_time_length = int(np.max(time_lengths))
+        # for each variable in the profile_[n]/<rate>/ part of the file, we need to create an xr.DataArray to hold its information for all 3 profiles, with the other required dimensions included.
+        for k in f['profile_1'][rate].keys():
+            # if subsetting of variables is being used, only include desired variables.
+            if subset is not None:
+                if k not in subset:
+                    continue
+            
+            # determine the shape the values need to take on
+            shape_inprofile = list(f['profile_1'][rate][k].shape)
+            # generate the list of axis names for the values
+            axis_names = [dim_lengths[v] for v in shape_inprofile]
+            # if 'time index' is in axis_names, we need to ensure that length is set to max_time_length
+            if 'time_index' in axis_names:
+                shape_inprofile[0] = max_time_length
+            vals = np.zeros(shape=(3,*shape_inprofile))
+
+            # populate vals with the values from the three profiles
+            for p in profile:
+                # if time_index is being used, we need to know how many NaNs we need to pad the data with:
+                insert_vals = f[f'profile_{p}'][rate][k][()]
+                if 'time_index' in axis_names:
+                    padding_length = int(max_time_length - time_lengths[p-1])
+                    if padding_length: # if the length of the time dimension and times for the variable dont match
+                        padding_shape = [int(v) for v in insert_vals.shape]
+                        padding_shape[0] = padding_length
+                        padding_nan = np.empty(padding_shape) * np.nan
+                        # insert sufficient nan values at the end to pad the output to alllow time_index to function as a dimension
+                        insert_vals = np.concatenate((insert_vals,padding_nan))
+
+                vals[p-1,...] = insert_vals
+
+            # regenerate the list of axis names for vals
+            axis_names = [dim_lengths[v] for v in vals.shape]
+            if verbose: print(f'{k} | {vals.shape}: {axis_names}')
+
+            # generate attributes for the xarray DataArray
+            #attrs = {k:v for k,v in f['profile_1']['high_rate'][k].attrs.items()}
+            attrs = {}
+            for j,v in f['profile_1'][rate][k].attrs.items():
+                if type(v) == np.bytes_:
+                    # solution from anon582847382: https://stackoverflow.com/questions/23618218/numpy-bytes-to-plain-string
+                    v = v.decode('UTF-8')
+                attrs[j] = v
+
+            # if _FillValue is in the keys, extract the value
+            fillValue = None
+            if '_FillValue' in attrs:
+                fillValue = attrs['_FillValue'][0]
+
+            # need to subset the coordinates based on which are present in vals
+            da_coords = {v: coords[v] for v in axis_names}
+
+            # create the DataArray and append it to the Dataset
+            da = xr.DataArray(vals,coords=da_coords, dims=axis_names, attrs=attrs)
+
+            # if createNan is active, and fillValue is not None, then we want to create Nan values in the data array
+            if createNan and fillValue is not None:
+                da = da.where(da != fillValue)
+
+            ds[k] = da
+
+        return ds
+
+
+
+
+
+
+
+
+
+
 
 
 SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','density_pass2','surface_height','layer_top','layer_bot', 'cloud_flag_atm')
