@@ -41,14 +41,16 @@ def load_xarray_from_ATL09(filename,subsetVariables=None,get_low_rate=False, sub
         ds_high : xr.Dataset
             The xarray dataset containing the high_rate ATL09 data, with profile, time_index, height, layer and surface type as coordinates.
 
-        ds_low : xr.Dataset
+        ds_low : xr.Dataset (IFF get_low_rate==True)
             xarray Dataset containing the low_rate ATL09 data.
     '''
 
     ds_high = load_rate(filename=filename, rate='high_rate', subset=subsetVariables, createNan=createNan, verbose=verbose)
-    ds_low = None
-    if get_low_rate:
-        ds_low = load_rate(filename=filename, rate='low_rate', subset=subsetVariables_low, createNan=createNan, verbose=verbose)
+    
+    if not get_low_rate:
+        return ds_high # this is to maintain backwards compatability with older code.
+
+    ds_low = load_rate(filename=filename, rate='low_rate', subset=subsetVariables_low, createNan=createNan, verbose=verbose)
 
     return ds_high, ds_low
 
@@ -179,7 +181,9 @@ SUBSET_LOW_CAL = (*SUBSET_LOW_DEFAULT, 'cal_c')
 
 '''Example code
 fname = '/home/users/eeasm/ICESAT_data/RGT0749_Cycles_10-12-bigger/processed_ATL09_20210211004659_07491001_005_01.h5'
-ds = load_xarray_from_ATL09(fname)
+ds_high, ds_low = load_xarray_from_ATL09(fname,get_low_rate=True)
+
+ds_high = load_xarray_from_ATL09(fname)
 
 print(ds)
 '''
