@@ -2,9 +2,8 @@ import os
 import h5py as h5
 import xarray as xr
 import numpy as np
-import icepyx as ipx
 
-def load_xarray_from_ATL09(filename,subsetVariables=None,get_low_rate=False, subsetVariables_low=False, createNan=True, verbose=False):
+def load_xarray_from_ATL09(filename,subsetVariables=None,get_low_rate=False, subsetVariables_low=None, createNan=True, verbose=False):
     '''Function to load in ATL09 data to xarray format from the hdf5 file format.
     
     The function will first open the h5 file and then create a high-frequency and low-frequency xr.Dataset objects.
