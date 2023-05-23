@@ -174,6 +174,8 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
 SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm')
 SUBSET_CLOUDS = (*SUBSET_DEFAULT,'apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag')
 
+SUBSET_LOW_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude')
+SUBSET_LOW_CAL = (*SUBSET_LOW_DEFAULT, 'cal_c')
 
 '''Example code
 fname = '/home/users/eeasm/ICESAT_data/RGT0749_Cycles_10-12-bigger/processed_ATL09_20210211004659_07491001_005_01.h5'
