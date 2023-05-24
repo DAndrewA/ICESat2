@@ -184,7 +184,8 @@ def calc_thresholds(data, downsample=0, segment_length=5, bias=60, sensitivity=1
 def dda(in_data,
         kernal_args={}, density_args={}, threshold_args={}, 
         two_pass=True,
-        kernal_args2={}, density_args2={}, threshold_args2={}):
+        kernal_args2={}, density_args2={}, threshold_args2={},
+        min_size=300):
     '''Function to run the DDA-atmos algortihm on the input ndarray.
     
     This will be the function to call in order to perform the full DDA-atmos algorithm on the input data. It will allow the user to configure the kernal, implement their own density function (if they so wish) and designate how the cloud-threshoilding is performed.
@@ -214,6 +215,9 @@ def dda(in_data,
 
         threshold_args2 : dict
             Same as threshold_args, except for the second pass. If not specified, threshold_args will be used.
+
+        min_size : int
+            Minimum size for cloud clusters to be, otherwise they're removed.
 
     OUTPUTS:
         return_data : dict : see following descriptions
