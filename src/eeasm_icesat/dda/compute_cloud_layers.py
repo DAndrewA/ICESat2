@@ -31,8 +31,9 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
         min_sep : float
             The minimum separation between cloud layers in the units of dim_height (i.e. meters)
 
-        ground_clearance : float
-            The minimum height above ground level (height=0) that will be considered for the cloud flags. If a cloud layer exists down to 50m, then the cloud base will be set as 0m
+        ground_clearance : float, np.ndarray
+            The minimum height above ground level (height=0) that will be considered for the cloud flags. If a cloud layer exists down to 50m, then the cloud base will be set as 0m.
+            If given as a numpy array, must be the same shape as the coord_x.
 
     OUPUTS:
         ds : xr.Dataset
@@ -42,8 +43,9 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
     xcoor = ds.coords[coord_x]
     ycoor = ds.coords[coord_height]
 
-    # get the index of the lowest bin we want to consider
-    y_min_i = int(np.sum(ycoor < ground_clearance))
+    # get the index of the lowest bin we want to consider (in the case that ground_clearance is a float)
+    if type(ground_clearance) == float:
+        y_min_i = int(np.sum(ycoor < ground_clearance))
     # get the bin numbers for the separation and depth parameters
     dy = ycoor[1] - ycoor[0]
     min_depth_bins = int(np.round(min_depth/dy))
@@ -65,6 +67,10 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
     for i,profile in enumerate(cloud_mask):
         cm_up = np.zeros_like(profile)
         cm_down = np.zeros_like(profile)
+
+        # if ground clearance is a numpy array, y_min_i needs to be caluclated at each profile
+        if type(ground_clearance) == np.ndarray:
+            y_min_i = int(np.sum(ycoor < ground_clearance[i]))
 
         #upwards pass
         inCloud = False
