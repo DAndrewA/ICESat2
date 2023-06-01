@@ -10,6 +10,7 @@ I'm aiming to write the script in such a way that functions can be modularly sel
 '''
 
 import numpy as np
+import xarray as xr
 from scipy import signal
 from skimage.morphology import remove_small_objects
 
@@ -192,7 +193,7 @@ def dda(in_data,
 
     INPUTS:
         in_data : np.ndarray (dtype=float)
-            2-dimensional (nxm) numpy ndarray which will contain the input data for the DDA-atmos algorithm. There will be m vertical profiles of n height bins.
+            2-dimensional (nxm) numpy ndarray which will contain the input data for the DDA-atmos algorithm. There will be m profiles of n height bins.
 
         kernal_args : dict
             Dictionary containing the arguments for the kernal computation. If 'kernalfunc' is not a specified key, then the default Gaussian kernal will be used. Otherwise, additional kernal functions can be specified.
@@ -288,3 +289,74 @@ def dda(in_data,
     return_data['cloud_mask'] = cloud_mask
     
     return return_data
+
+
+def dda_from_xarray(ds, dda_var, coord_height, coord_x, sel_args = {},**dda_kwargs):
+    '''Implements dda but using xarray dataset as input.
+    
+    INPUTS:
+        ds : xr.Dataset
+            xarray dataset containing variable [dda_var] as the input numpy array to the dda algorithm.
+
+        dda_var : string
+            the string variable name for the dda input array
+
+        coord_height : string
+            string for the name of the height dimension the dda_var can be transposed by.
+
+        coord_x : string
+            string for the name of the horizontal dimension the dda_var can be transposed by.
+
+        sel_args : dict
+            dictionary containing additional arguments for selecting the input data. This is used in case the input variable dda_var has additional dimensions (e.g. profile). If empty, then no additional selections will be performed.
+
+        dda_kwargs : all additional arguments used in dda()
+
+    OUTPUTS:
+        ds : xr.Dataset
+            same xarray dataset used in input, but with additional data in the relevant fields for the output.
+    '''
+    # extract the input variable from the dataset
+    dda_in_da = ds[dda_var]
+    mask = None
+    if sel_args != {}:
+        dda_in_da = dda_in_da.sel(**sel_args)
+        # generate the mask used later to input values back into ds
+        for k in sel_args:
+                if mask is None:
+                    mask = (ds[k].coords(k) == sel_args[k])
+                else:
+                    mask = mask & (ds[k].coords(k) == sel_args[k])
+
+
+    dda_in = dda_in_da.transpose(coord_height, coord_x).values
+
+    # determine if the data was transposed to be input to the dda algorithm
+    transposed = False
+    if dda_in.shape != dda_in_da.values.shape:
+        transposed=True
+    print('dda_from_xarray')
+    print(f'{transposed=} : {dda_in.shape=} ; {dda_in_da.values.shape=}')
+
+    # perform the dda algorithm
+    dda_out = dda(in_data=dda_in, **dda_kwargs)
+
+    # if they don't exist create the new dda_out variables in ds_in and populate them according to the selection rules
+    # each output array in the dictionary should be of the shape (height, coord_x), and can thus be made like dda_var...
+    for k in dda_out:
+        if ds.get(k) is None: 
+            # if the variable doesn't already exist, create it
+            ds[k] = xr.zeros_like(ds[dda_var])
+            
+        if transposed:
+            dda_out[k] = dda_out[k].T
+
+        # in the desired area, fill in with dda_out[k], otherwise, maintain the current value of ds_in[k]
+        if mask:
+            ds[k] = xr.where(mask, dda_out[k], ds[k])
+        else:
+            ds[k] = dda_out[k]
+
+    return ds
+
+
