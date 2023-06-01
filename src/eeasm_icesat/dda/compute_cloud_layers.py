@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 
 
-def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10, min_depth=90, min_sep=90, ground_clearance=50):
+def compute_cloud_layers(ds, coord_height='height', coord_x='time', sel_args={}, numLayers=10, min_depth=90, min_sep=90, ground_clearance=50):
     '''Function for computing the cloud layer properties from output of the DDA-atmos algorithm
     
     INPUTS:
@@ -21,6 +21,9 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
 
         coord_x : string
             The 'horizontal' coordinate to iterate the algorithm over.
+
+        sel_args : dictionary
+            Dictionary containing arguments for selection of the appropriate data from the dataset (i.e. if the profile dimension needs to be accounted for). Leave blank to not consider 
 
         numLayers : int
             The maximum number of layers to be output in the data product. Set to 10 to match output from ATL09 data.
@@ -44,16 +47,28 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
     ycoor = ds.coords[coord_height]
 
     # get the index of the lowest bin we want to consider (in the case that ground_clearance is a float)
-    if type(ground_clearance) == float:
+    if type(ground_clearance) != np.ndarray:
         y_min_i = int(np.sum(ycoor < ground_clearance))
+
     # get the bin numbers for the separation and depth parameters
     dy = ycoor[1] - ycoor[0]
     min_depth_bins = int(np.round(min_depth/dy))
     min_sep_bins = int(np.round(min_sep/dy))
     bins_buffer = int(np.max([min_depth_bins,min_sep_bins]))
 
-    # extract the cloud mask numpy array with the indices (x,y)
-    cloud_mask = ds.transpose(coord_x,coord_height,...).cloud_mask.values
+    # extract the cloud mask numpy array with the indices (horizontal,height). Also generates the output mask is sel_args is used
+    cloud_mask_da = ds.transpose(coord_x,coord_height,...).cloud_mask
+    out_mask = None
+    if sel_args != {}:
+        cloud_mask_da = cloud_mask_da.sel(**sel_args)
+        for k in sel_args:
+                if out_mask is None:
+                    out_mask = (ds[k] == sel_args[k])
+                else:
+                    out_mask = out_mask & (ds[k].coords(k) == sel_args[k])
+    cloud_mask = cloud_mask_da.values
+    del cloud_mask_da
+
     print(f'dda.compute_cloud_layers: {cloud_mask.shape=}')
     layer_bot = np.zeros((numLayers, xcoor.size))*np.nan
     layer_top = np.zeros((numLayers, xcoor.size))*np.nan
@@ -131,15 +146,30 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', numLayers=10
 
     # setup dimension and coordinates for ds to accomodate cloud layers
     # the use of newds is to ensure not all variables require the layer coordinate
-    newds = ds.expand_dims(dim={'layer': np.arange(numLayers)})
-    for k in list(ds.keys()):
-        newds[k] = (ds[k].dims,ds[k].values)
-    
-    newds['layer_bot'] = (['layer',coord_x],layer_bot)
-    newds['layer_top'] = (['layer',coord_x],layer_top)
-    newds['cloud_flag_atm'] = ([coord_x],cloud_flag_atm)
+    if 'layer' not in ds.dims: 
+        # the following code also stops 'layer' from being copied into every DataArray's shape
+        newds = ds.expand_dims(dim={'layer': np.arange(numLayers)})
+        for k in newds:
+            newds[k] = ds[k]
+        ds = newds.copy()
+        del newds
 
-    newds['cm_up'] = ([coord_height], cm_up)
-    newds['cm_down'] = ([coord_height],cm_down)
-    newds['cm'] = ([coord_height],cm)
-    return newds
+    # this code is inspired by that used in dda.py for when sel_args is used in dda_from_xarray
+    for k,d in zip(['layer_bot','layer_top','cloud_flag_atm'],
+                   [layer_bot,layer_top,cloud_flag_atm]):
+        if ds.get(k) is None: 
+            # if the variable doesn't already exist, create it
+            if d.ndim == 2:
+                new_dims = (*sel_args.keys(), 'layer', coord_x)
+            else:
+                new_dims = (*sel_args.keys(), coord_x)
+            new_shape = [int(ds.dims[dd]) for dd in new_dims]
+            ds[k] = xr.DataArray(data=np.zeros(new_shape), dims=new_dims)
+
+        # in the desired area, fill in with dda_out[k], otherwise, maintain the current value of ds_in[k]
+        if out_mask is not None:
+            ds[k] = xr.where(out_mask, d, ds[k])
+        else:
+            ds[k] = (ds[k].dims,d)
+    
+    return ds
