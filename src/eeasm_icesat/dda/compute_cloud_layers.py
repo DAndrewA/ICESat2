@@ -46,6 +46,15 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', sel_args={},
     xcoor = ds.coords[coord_x]
     ycoor = ds.coords[coord_height]
 
+    # if the height coordinate isn't in ascending order, need to make sure to flip it
+    flipped = False
+    if (np.diff(ycoor)<=0).any():
+        if (np.diff(ycoor)>0).any(): # raise error if not ordered
+            msg = 'ycoor isnt ordered'
+            raise ValueError(msg)
+        flipped = True
+        ycoor = np.flip(ycoor)
+
     # get the index of the lowest bin we want to consider (in the case that ground_clearance is a float)
     if type(ground_clearance) != np.ndarray:
         y_min_i = int(np.sum(ycoor < ground_clearance))
@@ -62,6 +71,9 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', sel_args={},
         cloud_mask_da = cloud_mask_da.sel(**sel_args)
     cloud_mask = cloud_mask_da.values
     del cloud_mask_da
+
+    if flipped:
+        cloud_mask = np.flip(cloud_mask, axis=1)
 
     print(f'dda.compute_cloud_layers: {cloud_mask.shape=}')
     layer_bot = np.zeros((numLayers, xcoor.size))*np.nan
