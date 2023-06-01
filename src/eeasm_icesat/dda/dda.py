@@ -349,7 +349,7 @@ def dda_from_xarray(ds, dda_var, coord_height, coord_x, sel_args = {},**dda_kwar
             if dda_out[k].ndim == 2: # 2-D (image) output, same as input
                 ds[k] = xr.zeros_like(ds[dda_var])*np.nan
             else: # otherwise, is a series-like output
-                ds[k] = xr.zeros_like(ds[coord_x])*np.nan
+                ds[k] = xr.zeros_like(ds[coord_x],dtype=float)*np.nan
             
         if transposed:
             dda_out[k] = dda_out[k].T.squeeze() # squeeze incase of series-like output being made into a 2d output
