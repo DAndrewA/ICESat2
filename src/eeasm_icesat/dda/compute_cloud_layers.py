@@ -56,16 +56,10 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', sel_args={},
     min_sep_bins = int(np.round(min_sep/dy))
     bins_buffer = int(np.max([min_depth_bins,min_sep_bins]))
 
-    # extract the cloud mask numpy array with the indices (horizontal,height). Also generates the output mask is sel_args is used
+    # extract the cloud mask numpy array with the indices (horizontal,height).
     cloud_mask_da = ds.transpose(coord_x,coord_height,...).cloud_mask
-    out_mask = None
     if sel_args != {}:
         cloud_mask_da = cloud_mask_da.sel(**sel_args)
-        for k in sel_args:
-                if out_mask is None:
-                    out_mask = (ds[k] == sel_args[k])
-                else:
-                    out_mask = out_mask & (ds[k].coords(k) == sel_args[k])
     cloud_mask = cloud_mask_da.values
     del cloud_mask_da
 
@@ -154,22 +148,40 @@ def compute_cloud_layers(ds, coord_height='height', coord_x='time', sel_args={},
         ds = newds.copy()
         del newds
 
-    # this code is inspired by that used in dda.py for when sel_args is used in dda_from_xarray
+    # for each calculated layer parameter, insert it into the dataset
     for k,d in zip(['layer_bot','layer_top','cloud_flag_atm'],
                    [layer_bot,layer_top,cloud_flag_atm]):
         if ds.get(k) is None: 
             # if the variable doesn't already exist, create it
+            new_desired_dims = (*sel_args.keys(), coord_x)
             if d.ndim == 2:
-                new_dims = (*sel_args.keys(), 'layer', coord_x)
-            else:
-                new_dims = (*sel_args.keys(), coord_x)
+                new_desired_dims = (*new_desired_dims, 'layer')
+            new_dims = [dim for dim in ds.dims if dim in new_desired_dims]
             new_shape = [int(ds.dims[dd]) for dd in new_dims]
             ds[k] = xr.DataArray(data=np.zeros(new_shape), dims=new_dims)
 
-        # in the desired area, fill in with dda_out[k], otherwise, maintain the current value of ds_in[k]
-        if out_mask is not None:
-            ds[k] = xr.where(out_mask, d, ds[k])
+        # create a dataArray with the calculated data, that can be transposed into the correct format
+        if d.ndim == 2:
+            dims = {'layer':ds.dims['layer'],
+                    coord_x:ds.dims[coord_x]}
         else:
-            ds[k] = (ds[k].dims,d)
+            dims = {coord_x:ds.dims[coord_x]}
+        da = xr.DataArray(d, dims=dims)
+
+        # transpose the data into the correct dimensional order for the dataset
+        new_dims = [dim for dim in ds.dims if dim in dims] # gets the dataset-ordered dimensions
+        print(f'reordering dims: dims={dims.keys()}; reordered={new_dims}')
+        da = da.transpose(*new_dims)
+        
+        if sel_args != {}:
+            out_mask = None
+            for sa in sel_args:
+                if out_mask is None:
+                    out_mask = (ds[sa] == sel_args[sa])
+                else:
+                    out_mask = out_mask & (ds[sa].coords(sa) == sel_args[sa])
+            ds[k] = xr.where(out_mask, da, ds[k])
+        else:
+            ds[k] = da
     
     return ds
