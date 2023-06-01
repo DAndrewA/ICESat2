@@ -253,7 +253,7 @@ def dda(in_data,
 
     # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
     thresholds = calc_thresholds(density, **threshold_args)
-    #return_data['thresholds1'] = thresholds
+    return_data['thresholds1'] = thresholds
     cloud_mask = np.greater(density, thresholds)
 
     if two_pass:
@@ -276,7 +276,7 @@ def dda(in_data,
         if threshold_args2 == {}:
             threshold_args2 = threshold_args
         thresholds2 = calc_thresholds(density2, **threshold_args2)
-        #return_data['thresholds2'] = thresholds2
+        return_data['thresholds2'] = thresholds2
         cloud_mask2 = np.greater(density2, thresholds2)
 
 
@@ -346,10 +346,13 @@ def dda_from_xarray(ds, dda_var, coord_height, coord_x, sel_args = {},**dda_kwar
     for k in dda_out:
         if ds.get(k) is None: 
             # if the variable doesn't already exist, create it
-            ds[k] = xr.zeros_like(ds[dda_var])
+            if dda_out[k].ndim == 2: # 2-D (image) output, same as input
+                ds[k] = xr.zeros_like(ds[dda_var])*np.nan
+            else: # otherwise, is a series-like output
+                ds[k] = xr.zeros_like(ds[coord_x])*np.nan
             
         if transposed:
-            dda_out[k] = dda_out[k].T
+            dda_out[k] = dda_out[k].T.squeeze() # squeeze incase of series-like output being made into a 2d output
 
         # in the desired area, fill in with dda_out[k], otherwise, maintain the current value of ds_in[k]
         if mask is not None:
