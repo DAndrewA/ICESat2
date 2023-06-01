@@ -253,7 +253,7 @@ def dda(in_data,
 
     # calculate the thresholds for the cloud-pixels from the masked density field, and calculate the cloud_mask as a result
     thresholds = calc_thresholds(density, **threshold_args)
-    return_data['thresholds1'] = thresholds
+    #return_data['thresholds1'] = thresholds
     cloud_mask = np.greater(density, thresholds)
 
     if two_pass:
@@ -276,7 +276,7 @@ def dda(in_data,
         if threshold_args2 == {}:
             threshold_args2 = threshold_args
         thresholds2 = calc_thresholds(density2, **threshold_args2)
-        return_data['thresholds2'] = thresholds2
+        #return_data['thresholds2'] = thresholds2
         cloud_mask2 = np.greater(density2, thresholds2)
 
 
@@ -324,7 +324,7 @@ def dda_from_xarray(ds, dda_var, coord_height, coord_x, sel_args = {},**dda_kwar
         # generate the mask used later to input values back into ds
         for k in sel_args:
                 if mask is None:
-                    mask = (ds[k].coords(k) == sel_args[k])
+                    mask = (ds[k] == sel_args[k])
                 else:
                     mask = mask & (ds[k].coords(k) == sel_args[k])
 
@@ -352,10 +352,10 @@ def dda_from_xarray(ds, dda_var, coord_height, coord_x, sel_args = {},**dda_kwar
             dda_out[k] = dda_out[k].T
 
         # in the desired area, fill in with dda_out[k], otherwise, maintain the current value of ds_in[k]
-        if mask:
+        if mask is not None:
             ds[k] = xr.where(mask, dda_out[k], ds[k])
         else:
-            ds[k] = dda_out[k]
+            ds[k] = (ds[k].dims,dda_out[k])
 
     return ds
 
