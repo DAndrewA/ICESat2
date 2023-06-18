@@ -66,3 +66,54 @@ def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3):
         layer_mask[i,:] = cm
 
     return layer_mask
+
+
+def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3):
+    '''Function to perform up- and down-passes on cloud_mask to create layers with the minimum depth and separation.
+    The function is intended to be vectorized to speed up the application of the DDA.
+    
+    INPUTS:
+        cloud_mask : np.ndarray (dtype=boolean)
+            nxm numpy array containin the consolidated cloud mask. 1s represent cloudy pixels, 0s represent cloud-free pixels.
+
+        min_depth : int
+            The minimum number of pixels a cloud layer can contain.
+
+        min_sep : int
+            The minimum number of pixels that can seperate two cloud layers.
+
+    OUTPUTS:
+        layer_mask : np.ndarray (dtype=boolean)
+            nxm numpy array containing 1s for cloudy pixels and 0s for non-cloudy pixels. This has cloud layers of a minimum thickness and layers with a minimum separation.
+    '''
+    (n_prof, n_vert) = cloud_mask.shape
+    buffer = np.max([min_depth,min_sep])
+
+    layer_mask = np.zeros_like(cloud_mask)
+    cm_up = np.zeros_like(cloud_mask)
+    cm_down = np.zeros_like(cloud_mask)
+
+    inCloud = np.zeros((n_prof,)).astype(bool)
+    # perform the up-pass
+    for j in range(n_vert-buffer):
+        cloud_mask_layer = cloud_mask[:,j].squeeze()
+    
+        change_in = ((1 - inCloud) * cloud_mask_layer * np.all(cloud_mask[:,j:j+min_depth] == 1, axis=1).squeeze()).astype(bool)
+        change_out = ((1 - cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j:j+min_depth] == 0, axis=1).squeeze()).astype(bool)
+        inCloud = inCloud + change_in - change_out
+
+        cm_up[j,:] = inCloud
+    
+    inCloud = np.zeros((n_prof,))
+    # perform the down-pass
+    for j in range(n_vert-1,buffer-1,-1):
+        cloud_mask_layer = cloud_mask[:j].squeeze()
+
+        change_in = ((1-inCloud) * cloud_mask_layer * np.all(cloud_mask[:,j-min_depth:j] == 1, axis=1).squeeze()).astype(bool)
+        change_out = ((1-cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j-min_sep:j] == 0, axis=1).squeeze()).astype(bool)
+        inCloud = inCloud + change_in - change_out
+
+        cm_down[:,j-1] = inCloud
+
+    layer_mask = np.logical_or(cm_up,cm_down)
+    return layer_mask
