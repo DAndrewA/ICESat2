@@ -60,5 +60,3 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
     if not top_down:
         print(f'dda.steps.get_layer_boundaries: {top_down=} => swap layer_bot and layer_top in subsequent analysis')
     return num_cloud_layers, layer_bot, layer_top
-
-    
