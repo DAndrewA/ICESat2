@@ -7,7 +7,7 @@ Functions to run my implementation of the DDA-atmos algorithm on ATL09 data.
 import numpy as np
 import xarray as xr
 
-import steps as steps
+from . import steps
 
 def dda_atl(data, heights, dem,
         kernal_args={}, density_args={}, threshold_args={}, 
