@@ -15,7 +15,7 @@ def calc_cloud_mask(density, threshold, data_mask=None, remove_small_clusters=0,
             nxm numpy array containing the density field
 
         threshold : np.ndarray
-            (x,) numpy ndarray containing the threshold value for each vertical profile.
+            (x,1) numpy ndarray containing the threshold value for each vertical profile.
 
         data_mask : np.ndarray (dtype=boolean), None
             nxm numpy array determining which values in the input data are invalid. If not None, then regions of the cloud_mask will be set to 0 where data_mask is True. Otherwise, cloud_mask will not be affected.
