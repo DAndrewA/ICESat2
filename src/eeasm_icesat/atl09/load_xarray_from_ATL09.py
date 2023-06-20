@@ -173,7 +173,7 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
         return ds
 
 
-SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm')
+SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm', 'dem_h')
 SUBSET_CLOUDS = (*SUBSET_DEFAULT,'apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag')
 
 SUBSET_LOW_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude')
