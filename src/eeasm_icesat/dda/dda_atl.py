@@ -134,6 +134,6 @@ def dda_atl(data, heights, dem,
     layer_mask = steps.combine_layers_from_mask(cloud_mask_no_ground, verbose=verbose)
 
     if verbose: print('******** Calculating layer boundaries')
-    layer_bot, layer_top = steps.get_layer_boundaries(layer_mask,heights, verbose=verbose)
+    num_cloud_layers, layer_bot, layer_top = steps.get_layer_boundaries(layer_mask,heights, verbose=verbose)
 
-    return (layer_bot, layer_top), (density1, density2), (thresholds1, thresholds2), (cloud_mask1, cloud_mask2), (ground_mask, ground_height, layer_mask_with_ground), (cloud_mask_no_ground, layer_mask)
+    return (num_cloud_layers, layer_bot, layer_top), (density1, density2), (thresholds1, thresholds2), (cloud_mask1, cloud_mask2), (ground_mask, ground_height, layer_mask_with_ground), (cloud_mask_no_ground, layer_mask)
