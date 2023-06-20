@@ -23,6 +23,16 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
 
         top_down : bool
             Flag for whether to perform the layer assignment from the top-down or bottom-up.
+
+    OUTPUTS:
+        num_cloud_layers : np.ndarray (dtype=int)
+            (n,) numpy array containing the number of detected cloud layers in each profile
+
+        layer_bot : np.ndarray
+            (n,n_layers) numpy array containing the bottom heights of the layers.
+
+        layer_top : np.ndarray
+            (n,n_layers) numpy array containing the top heights of the detected layers.
     '''
     (n_prof, n_vert) = layer_mask.shape
     layer_bot = np.zeros((n_prof,n_layers))
