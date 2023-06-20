@@ -93,7 +93,7 @@ def dda_atl(data, heights, dem,
     if verbose: print('******** Starting pass 1')
 
     kernal1 = steps.create_kernal.Gaussian(**kernal_args, verbose=verbose)
-    density1 = steps.calc_density(data, data_mask, kernal1, verbose=verbose, **density_args)
+    density1 = steps.calc_density(data, data_mask, kernal1, density_args, verbose)
     thresholds1 = steps.calc_threshold(density1, data_mask, **threshold_args, verbose=verbose)
     if remove_clusters_in_pass:
         cloud_mask1 = steps.calc_cloud_mask(density1,thresholds1,data_mask, remove_small_clusters=min_cluster_size, verbose=verbose)
@@ -111,7 +111,7 @@ def dda_atl(data, heights, dem,
         density2 = steps.calc_density_field(data,data_mask, kernal2, **density_args2, verbose=verbose)
     else:
         data_mask = np.logical_or(data_mask, cloud_mask1)
-        density2 = steps.calc_density(data, data_mask, kernal2, **density_args2, verbose=verbose)
+        density2 = steps.calc_density(data, data_mask, kernal2, density_args2, verbose)
     thresholds2 = steps.calc_threshold(density2, data_mask, **threshold_args2, verbose=verbose)
     if remove_clusters_in_pass:
         cloud_mask2 = steps.calc_cloud_mask(density2,thresholds2,data_mask, remove_small_clusters=min_cluster_size, verbose=verbose)
