@@ -63,8 +63,8 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
 
     ground_identified = np.max(possible_ground, axis=1).astype(bool)
     
-    ground_bin = np.zeros_like(dem,dtype=int)
-    ground_height = np.zeros_like(dem)
+    ground_bin = dem.copy() # if ground isn't found in signal, use dem height instead.
+    ground_height = np.zeros_like(dem) * np.nan
 
     for i,b in enumerate(ground_identified):
         if b: # if ground has been identified in the profile
