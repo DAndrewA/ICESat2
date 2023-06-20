@@ -80,5 +80,5 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
         quantile_value = np.nanquantile(quantileData,quantile/100)
         thresholds[xx] = bias + sensitivity*quantile_value
 
-    thresholds = np.expand_dims(thresholds) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
+    thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
     return thresholds
