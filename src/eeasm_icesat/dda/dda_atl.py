@@ -13,7 +13,8 @@ def dda_atl(data, heights, dem,
         kernal_args={}, density_args={}, threshold_args={}, 
         kernal_args2={}, density_args2={}, threshold_args2={},
         min_cluster_size=300, remove_clusters_in_pass=False, fill_clouds_with_noise=True,
-        dem_tol=3, ground_width=3):
+        dem_tol=3, ground_width=3,
+        verbose=False):
     '''Function to run the full DDA-atmos algorithm on the ATL09 data.
     
     This follows the threading described in the ATBD part 2 Section 21. 
@@ -48,6 +49,9 @@ def dda_atl(data, heights, dem,
 
         ground_width : int
             The number of bins the ground signal is assumed to be spread over in the density field due to the kernal convolution.
+
+        verbose : bool
+            Flag for printing debug statements
 
     OUTPUTS: tuples
     1)
@@ -86,43 +90,50 @@ def dda_atl(data, heights, dem,
     # Threading: 1: Run DDA-atmos to determination of combined decluster mask [section 3.1 to 3.5]
     data_mask = np.isnan(data)
 
-    kernal1 = steps.create_kernal.Gaussian(**kernal_args)
-    density1 = steps.calc_density_field(data, data_mask, kernal1, **density_args)
-    thresholds1 = steps.calc_threshold(density1, data_mask, **threshold_args)
-    if remove_clusters_in_pass:
-        cloud_mask1 = steps.calc_cloud_mask(density1,thresholds1,data_mask, remove_small_clusters=min_cluster_size)
-    else:
-        cloud_mask1 = steps.calc_cloud_mask(density1,thresholds1,data_mask)
+    if verbose: print('******** Starting pass 1')
 
-    kernal2 = steps.create_kernal.Gaussian(**kernal_args2)
+    kernal1 = steps.create_kernal.Gaussian(**kernal_args, verbose=verbose)
+    density1 = steps.calc_density(data, data_mask, kernal1, verbose=verbose, **density_args)
+    thresholds1 = steps.calc_threshold(density1, data_mask, **threshold_args, verbose=verbose)
+    if remove_clusters_in_pass:
+        cloud_mask1 = steps.calc_cloud_mask(density1,thresholds1,data_mask, remove_small_clusters=min_cluster_size, verbose=verbose)
+    else:
+        cloud_mask1 = steps.calc_cloud_mask(density1,thresholds1,data_mask, verbose=verbose)
+
+    if verbose: print('******** Starting pass 2')
+
+    kernal2 = steps.create_kernal.Gaussian(**kernal_args2, verbose=verbose)
     # update the data_mask variable to include cloud_mask1.
     if fill_clouds_with_noise:
         raise NotImplementedError
         # determine what the noise mean and sd are
         # data[cloud_mask1] = np.rand(data.size,mean,sd)[cloud_mask1]
-        density2 = steps.calc_density_field(data,data_mask, kernal2, **density_args2)
+        density2 = steps.calc_density_field(data,data_mask, kernal2, **density_args2, verbose=verbose)
     else:
         data_mask = np.logical_or(data_mask, cloud_mask1)
-        density2 = steps.calc_density_field(data, data_mask, kernal2, **density_args2)
-    thresholds2 = steps.calc_threshold(density2, data_mask, **threshold_args2)
+        density2 = steps.calc_density(data, data_mask, kernal2, **density_args2, verbose=verbose)
+    thresholds2 = steps.calc_threshold(density2, data_mask, **threshold_args2, verbose=verbose)
     if remove_clusters_in_pass:
-        cloud_mask2 = steps.calc_cloud_mask(density2,thresholds2,data_mask, remove_small_clusters=min_cluster_size)
+        cloud_mask2 = steps.calc_cloud_mask(density2,thresholds2,data_mask, remove_small_clusters=min_cluster_size, verbose=verbose)
     else:
-        cloud_mask2 = steps.calc_cloud_mask(density2,thresholds2,data_mask)
+        cloud_mask2 = steps.calc_cloud_mask(density2,thresholds2,data_mask, verbose=verbose)
     # create the combined cloud_mask variable
-    cloud_mask_combined = steps.combine_masks((cloud_mask1,cloud_mask2), remove_small_clusters=min_cluster_size)
+    cloud_mask_combined = steps.combine_masks((cloud_mask1,cloud_mask2), remove_small_clusters=min_cluster_size, verbose=verbose)
 
+    if verbose: print('******** Finding ground signal')
     # determine within which signal bins the ground lies
-    (ground_bin, ground_height) = steps.get_ground_bin(density1, cloud_mask_combined, heights, dem, dem_tol)
+    (ground_bin, ground_height) = steps.get_ground_bin(density1, cloud_mask_combined, heights, dem, dem_tol, verbose=verbose)
 
-    layer_mask_with_ground = steps.combine_layers_from_mask(cloud_mask_combined)
+    layer_mask_with_ground = steps.combine_layers_from_mask(cloud_mask_combined, verbose=verbose)
 
+    if verbose: print('******** Removing ground from signal')
     # remove the ground bins from cloud_mask
-    cloud_mask_no_ground, ground_mask = steps.remove_ground_from_mask(layer_mask_with_ground, ground_bin,cloud_mask_combined,ground_width,heights)
+    cloud_mask_no_ground, ground_mask = steps.remove_ground_from_mask(layer_mask_with_ground, ground_bin,cloud_mask_combined,ground_width,heights, verbose=verbose)
 
     # create a new layer_mask with the ground signal removed
-    layer_mask = steps.combine_layers_from_mask(cloud_mask_no_ground)
+    layer_mask = steps.combine_layers_from_mask(cloud_mask_no_ground, verbose=verbose)
 
-    layer_bot, layer_top = steps.get_layer_boundaries(layer_mask,heights)
+    if verbose: print('******** Calculating layer boundaries')
+    layer_bot, layer_top = steps.get_layer_boundaries(layer_mask,heights, verbose=verbose)
 
     return (layer_bot, layer_top), (density1, density2), (thresholds1, thresholds2), (cloud_mask1, cloud_mask2), (ground_mask, ground_height, layer_mask_with_ground), (cloud_mask_no_ground, layer_mask)
