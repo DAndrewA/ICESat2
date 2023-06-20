@@ -72,8 +72,8 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
         xleft = xx-segment_length*delta
         xright = xx+segment_length*delta
         if xleft < 0 or xright > n_prof-1:
-            xleft = np.max(0,xleft)
-            xright = np.min(xright, n_prof-1)
+            xleft = np.max([0,xleft])
+            xright = np.min([xright, n_prof-1])
         # extract collums that have independant maximum values per pixel
         quantileData = downsample_matrix[xleft:xright+1:delta,:]
 
