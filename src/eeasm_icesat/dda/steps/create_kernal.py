@@ -6,7 +6,7 @@ Functions for cerating kernals for use in the DDA algorithm.
 
 import numpy as np
 
-def Gaussian(sigma_y, sigma_x=None, a_m=None, cutoff=None, n=None, m=None, dx=1,dy=1, **kwargs):
+def Gaussian(sigma_y, sigma_x=None, a_m=None, cutoff=None, n=None, m=None, dx=1,dy=1, verbose=False, **kwargs):
     '''Function to calculate and return a normalised Gaussian kernal.
     
     In order to work, this function requires:
@@ -39,12 +39,16 @@ def Gaussian(sigma_y, sigma_x=None, a_m=None, cutoff=None, n=None, m=None, dx=1,
         m : float
             Width of the kernal in pixels
 
+        verbose : bool
+            Flag for printing out debug statements
+
         **kwargs : any additional arguments. These won't be used however.
 
     OUTPUTS:
         kernal : np.ndarray
             2-dimensional numpy array for the Gaussian kernal.
     '''
+    if verbose: print('==== dda.steps.create_kernal.Gaussian()')
     if sigma_x is None:
         if a_m is None:
             print('dda.steps.create_kernal.Gaussian: a_m and sigma_x undefined')

@@ -6,7 +6,7 @@ The function to extract the layer height variables using the consolidated layer 
 
 import numpy as np
 
-def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
+def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True, verbose=False):
     '''Function to extract the layer boundary heights using the consolidated layer_mask and the heights variable.
     
     The function can be performed from the top-down or bottom-up, which is given as an argument. NOTE: if top_down=False, then layer_bot and layer_top need to be swapped in the subsequent analysis
@@ -24,6 +24,9 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
         top_down : bool
             Flag for whether to perform the layer assignment from the top-down or bottom-up.
 
+        verbose : bool
+            Flag for printing out debug statements
+
     OUTPUTS:
         num_cloud_layers : np.ndarray (dtype=int)
             (n,) numpy array containing the number of detected cloud layers in each profile
@@ -34,6 +37,7 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
         layer_top : np.ndarray
             (n,n_layers) numpy array containing the top heights of the detected layers.
     '''
+    if verbose: print('==== dda.steps.get_layer_boundaries()')
     (n_prof, n_vert) = layer_mask.shape
     layer_bot = np.zeros((n_prof,n_layers))
     layer_top = np.zeros_like(layer_bot)
@@ -51,6 +55,7 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
     if (top_down and not desc) or (not top_down and desc):
         layer_mask = np.flip(layer_mask,axis=1)
         heights = np.flip(heights,axis=1)
+        print('layer_mask and heights flipped to account for desired direction of layer counting.')
 
     # for each profile
     for i, profile in enumerate(layer_mask):
@@ -68,5 +73,7 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True):
         num_cloud_layers[i] = layer_n
 
     if not top_down:
-        print(f'dda.steps.get_layer_boundaries: {top_down=} => swap layer_bot and layer_top in subsequent analysis')
+        if not verbose:
+            print('==== dda.steps.get_layer_boundaries()')
+        print(f'{top_down=} => swap layer_bot and layer_top in subsequent analysis')
     return num_cloud_layers, layer_bot, layer_top

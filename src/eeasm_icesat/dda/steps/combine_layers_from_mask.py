@@ -6,7 +6,7 @@ The function to perform the up- and down-passes on the consolidated cloud mask t
 
 import numpy as np
 
-def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3):
+def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3, verbose=False):
     '''Function to perform up- and down-passes on cloud_mask to create layers with the minimum depth and separation.
     
     INPUTS:
@@ -19,11 +19,14 @@ def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3):
         min_sep : int
             The minimum number of pixels that can seperate two cloud layers.
 
+        verbose : bool
+            Flag for printing out debug statements
+
     OUTPUTS:
         layer_mask : np.ndarray (dtype=boolean)
             nxm numpy array containing 1s for cloudy pixels and 0s for non-cloudy pixels. This has cloud layers of a minimum thickness and layers with a minimum separation.
     '''
-
+    if verbose: print('==== dda.steps.combine_layers_from_mask()')
     (n_prof, n_vert) = cloud_mask.shape
     buffer = np.max([min_depth,min_sep])
     layer_mask = np.zeros_like(cloud_mask)
@@ -68,7 +71,7 @@ def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3):
     return layer_mask
 
 
-def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3):
+def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3, verbose=False):
     '''Function to perform up- and down-passes on cloud_mask to create layers with the minimum depth and separation.
     The function is intended to be vectorized to speed up the application of the DDA.
     
@@ -82,10 +85,14 @@ def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3):
         min_sep : int
             The minimum number of pixels that can seperate two cloud layers.
 
+        verbose : bool
+            Flag for printing out debug statements
+
     OUTPUTS:
         layer_mask : np.ndarray (dtype=boolean)
             nxm numpy array containing 1s for cloudy pixels and 0s for non-cloudy pixels. This has cloud layers of a minimum thickness and layers with a minimum separation.
     '''
+    if verbose: print('==== dda.steps.combine_layers_from_mask_vectorized()')
     (n_prof, n_vert) = cloud_mask.shape
     buffer = np.max([min_depth,min_sep])
 
@@ -95,6 +102,7 @@ def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3):
 
     inCloud = np.zeros((n_prof,)).astype(bool)
     # perform the up-pass
+    if verbose: print('Performing up-pass.')
     for j in range(n_vert-buffer):
         cloud_mask_layer = cloud_mask[:,j].squeeze()
     
@@ -106,6 +114,7 @@ def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3):
     
     inCloud = np.zeros((n_prof,))
     # perform the down-pass
+    if verbose: print('Performing down-pass.')
     for j in range(n_vert-1,buffer-1,-1):
         cloud_mask_layer = cloud_mask[:j].squeeze()
 

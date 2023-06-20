@@ -6,7 +6,7 @@ Function to calculate the cloud layer threshold, given the data matrix, a data m
 
 import numpy as np
 
-def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, **kwargs):
+def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, verbose=False **kwargs):
     '''Function to calculate the threshold values for cloud pixels in each vertical profile of the density field.
     
     This function represents the synthesis of methods A and B in the ATL04/09 ATBD part 2 [https://doi.org/10.5067/48PJ5OUJOP4C]. The default arguments are for method B (although the bias and sensitivity values likely need changing for MPL data)
@@ -33,18 +33,22 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
         quantile : float
             Value between 0 and 100 (in %), the quantile value that is to be used in the threshold calculation.
 
-        kwargs : an_vert additional arguments won't be used.
+        verbose : bool
+            Flag for printing out debug statements
+
+        kwargs : additional arguments won't be used.
 
     OUTPUTS:
         thresholds : np.ndarray
             (n,) numpy array containing the threshold value for clouds in each vertical profile in data.
     '''
+    if verbose: print('==== dda.steps.calc_threshold()')
     # perform the downsampling first on a profile-by-profile basis
     (n_prof,n_vert) = density.shape
     downsample_matrix = density
     
     if downsample > 0:
-        print('dda.steps.calc_threshold: downsampling matrix')
+        if verbose: print('Downsampling matrix.')
         downsample_matrix = density.copy() # only copy the data if downsampling is required
         for xx in range(n_prof):
             # ensure the indices lie within the bounds of data
@@ -57,7 +61,7 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
                 downsample_matrix[xx,yy] = np.nanmax(density[ileft:iright,ibot:itop])
 
     # now need to access the downsampled matrix and perform the quantile calculations...
-    print('dda.steps.calc_threshold: calculating thresholds')
+    if verbose: print('Calculating thresholds.')
     if data_mask is not None: # if the data mask is provided, set the masked values to nan. Otherwise, they will have some density value.
         downsample_matrix[data_mask] = np.nan
 

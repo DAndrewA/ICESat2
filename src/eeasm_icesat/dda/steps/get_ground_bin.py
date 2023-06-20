@@ -6,7 +6,7 @@ Function to get the ground return bin in the data (if it exists) by checking bin
 
 import numpy as np
 
-def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
+def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
     '''Function to get the bin associated with the ground return signal.
     
     The algorithm steps are outlined in the ATL09 ATBD part 2 Sec22.3.
@@ -30,6 +30,9 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
         dem_tol : int
             number of height bins (pixels) that a 'cloudy' pixel must be within the dem of to qualify as being part of the gorund signal.
 
+        verbose : bool
+            Flag for printing out debug statements
+
     OUTPUTS:
         ground_bin : np.ndarray (dtype=int)
             (n,) numpy array containing the index of the ground in the profiles with respect to the orientation of the heights coordinate
@@ -37,6 +40,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
         ground_height: np.ndarray
             (n,) numpy array containing the height values determined by the algorithm.
     '''
+    if verbose: print('==== dda.steps.get_ground_bin()')
     (n_prof,n_vert) = density.shape
     #Ensure that the heights variable is in ascending order, and flip density and cloud_mask if required.
     dh = 0
@@ -50,6 +54,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
         cloud_mask = np.flip(cloud_mask,axis=1)
         dh = np.mean(np.diff(heights))
         flipped = True
+        print('Values flipped due to descending height order.')
 
     dem_bin = np.floor_divide(dem,dh)
 
@@ -63,6 +68,8 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
 
     ground_identified = np.max(possible_ground, axis=1).astype(bool)
     
+    if verbose: print('Ground identified.')
+
     ground_bin = dem.copy() # if ground isn't found in signal, use dem height instead.
     ground_height = np.zeros_like(dem) * np.nan
 
@@ -72,6 +79,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol):
             g_bin = np.min(np.nonzero(density[i,:] == max_dens)[0]) # takes the lowest index where the bin has a density equal to the maximum density in the profile that is within the dem tolerance
             ground_bin[i] = g_bin
     
+    if verbose: print('Ground bins found,')
     ground_height = dem + dh*(ground_bin - dem_bin)
 
     if flipped: # flip the indices back to the original height-coordinate-orientation

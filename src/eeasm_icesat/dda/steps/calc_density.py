@@ -7,7 +7,7 @@ Function to calculate the density field from data and a data mask.
 import numpy as np
 from scipy.signal import convolve2d
 
-def calc_density(data, data_mask, kernal, density_args):
+def calc_density(data, data_mask, kernal, density_args, verbose=False):
     '''Function to calculate the density field from data and a data_mask using the provided kernal.
     
     INPUTS:
@@ -27,6 +27,7 @@ def calc_density(data, data_mask, kernal, density_args):
         density : np.ndarray
             nxm numpy array containing the density field of data.
     '''
+    print('==== dda.steps.calc_density()')
     density = convolve_masked(data, data_mask, kernal, density_args)
     return density
 

@@ -6,7 +6,7 @@ Function to remove bins recognised as containing the ground signal from a mask.
 
 import numpy as np
 
-def remove_ground_from_mask(layer_mask, ground_bin, cloud_mask, ground_width, heights):
+def remove_ground_from_mask(layer_mask, ground_bin, cloud_mask, ground_width, heights, verbose=False):
     '''Function to remove the ground signal from a cloud_mask if the ground bins are present in layer_mask.
 
     As ground_bin should already take into account the ordering of heights, then heights is included to see whether the bin index needs to be incremented or decremented when iterating through the ground touching layer.
@@ -27,6 +27,9 @@ def remove_ground_from_mask(layer_mask, ground_bin, cloud_mask, ground_width, he
         heights : np.ndarray
             (m,) numpy array used to determine if the masks are ordered in ascending or descending height. This changes whether the layers are counted from the top-down or bottom-up.
 
+        verbose : bool
+            Flag for printing out debug statements
+
     OUTPUTS:
         cloud_mask_no_ground : np.ndarray (dtype=bool)
             nxm numpy array containing the combined cloud mask information from the dda passes, with the ground signal removed.
@@ -34,6 +37,7 @@ def remove_ground_from_mask(layer_mask, ground_bin, cloud_mask, ground_width, he
         ground_mask : np.ndarray (dtype=bool)
             nxm numpy array containing a mask denoting ground pixels (1s) and non-ground pixels (0s).
     '''
+    if verbose: print('==== dda.steps.remove_ground_from_mask()')
     cloud_mask_no_ground = cloud_mask.copy()
     ground_mask = np.zeros_like(cloud_mask)
     # determine if the counting needs to be flipped
