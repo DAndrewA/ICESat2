@@ -28,7 +28,7 @@ def calc_density(data, data_mask, kernal, density_args, verbose=False):
             nxm numpy array containing the density field of data.
     '''
     print('==== dda.steps.calc_density()')
-    density = convolve_masked(data, data_mask, kernal, density_args)
+    density = convolve_masked(data, data_mask, kernal, **density_args)
     return density
 
 
