@@ -6,7 +6,7 @@ Function to calculate the cloud layer threshold, given the data matrix, a data m
 
 import numpy as np
 
-def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, verbose=False **kwargs):
+def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, verbose=False, **kwargs):
     '''Function to calculate the threshold values for cloud pixels in each vertical profile of the density field.
     
     This function represents the synthesis of methods A and B in the ATL04/09 ATBD part 2 [https://doi.org/10.5067/48PJ5OUJOP4C]. The default arguments are for method B (although the bias and sensitivity values likely need changing for MPL data)
