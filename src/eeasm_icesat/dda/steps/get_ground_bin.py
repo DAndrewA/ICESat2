@@ -42,6 +42,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
     '''
     if verbose: print('==== dda.steps.get_ground_bin()')
     (n_prof,n_vert) = density.shape
+    dem = np.expand_dims(dem,axis=1) # expand the dimensions of dem to allow for broadcasting along vertical coordinate
     #Ensure that the heights variable is in ascending order, and flip density and cloud_mask if required.
     dh = 0
     flipped = False
