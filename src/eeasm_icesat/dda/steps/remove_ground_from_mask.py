@@ -52,8 +52,7 @@ def remove_ground_from_mask(layer_mask, ground_bin, cloud_mask, ground_width, he
         g_bin = ground_bin[i]
         if ~np.isnan(g_bin): # if the ground signal has been detected
             # remove the ground signal from cloud_mask
-            cloud_mask_no_ground[i,g_bin-ground_width:g_bin+ground_width+1] = 0
-            ground_mask[i,g_bin-ground_width:g_bin+ground_width+1] = cloud_mask[i,g_bin-ground_width:g_bin+ground_width+1]
-
+            cloud_mask_no_ground[i,int(g_bin-ground_width):int(g_bin+ground_width+1)] = 0
+            ground_mask[i,int(g_bin-ground_width):int(g_bin+ground_width+1)] = cloud_mask[i,int(g_bin-ground_width):int(g_bin+ground_width+1)]
     
     return cloud_mask_no_ground, ground_mask

@@ -57,7 +57,8 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
         flipped = True
         print('Values flipped due to descending height order.')
 
-    dem_bin = np.floor_divide(dem,dh)
+    dem_bin = np.floor_divide(dem,dh).astype(int)
+    if verbose: print(f'{dem_bin.dtype=}')
 
     # reshape heights and dem to allow for "outer product" to be created
     delta_heights = heights.reshape((1,n_vert)) - dem.reshape((n_prof,1))
@@ -86,5 +87,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
     if flipped: # flip the indices back to the original height-coordinate-orientation
         ground_bin = n_vert - ground_bin - 1
 
+    ground_bin = ground_bin.astype(int)
+    if verbose: print(f'{ground_bin.dtype=}')
     return ground_bin,ground_height
         
