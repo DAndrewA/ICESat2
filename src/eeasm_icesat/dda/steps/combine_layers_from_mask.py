@@ -31,7 +31,7 @@ def combine_layers_from_mask(cloud_mask, min_depth=3, min_sep=3, verbose=False):
     buffer = np.max([min_depth,min_sep])
     layer_mask = np.zeros_like(cloud_mask)
 
-    for i, profile in cloud_mask:
+    for i, profile in enumerate(cloud_mask):
         # for each vertical profile
         cm_up = np.zeros_like(profile).astype(bool) # cloud masks that will be consolidated
         cm_down = np.zeros_like(profile).astype(bool)
