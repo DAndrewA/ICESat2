@@ -57,22 +57,23 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
         flipped = True
         print('Values flipped due to descending height order.')
 
-    dem_bin = np.floor_divide(dem,dh).astype(int)
+    if verbose: print(f'{heights[0]=}')
+    dem_bin = np.floor_divide(dem - heights[0],dh).astype(int)
     if verbose: print(f'{dem_bin.dtype=}')
 
     # reshape heights and dem to allow for "outer product" to be created
-    delta_heights = heights.reshape((1,n_vert)) - dem.reshape((n_prof,1))
-
+    delta_heights = dem.reshape((n_prof,1)) - heights.reshape((1,n_vert))
+    if verbose: print(f'{(dem_tol*dh)=}')
     delta_below = np.less_equal(delta_heights, dem+dem_tol*dh)
     delta_above = np.greater_equal(delta_heights, dem-dem_tol*dh)
     possible_ground = np.logical_and(delta_above,delta_below) # creates a mask of values +- dem_tol from the dem height
     possible_ground = np.logical_and(possible_ground, cloud_mask)
 
     ground_identified = np.max(possible_ground, axis=1).astype(bool)
-    
-    if verbose: print('Ground identified.')
+    if verbose: print(f'{np.max(ground_identified)=}')
+    if verbose: print(f'{np.min(ground_identified)=}')
 
-    ground_bin = dem.copy() # if ground isn't found in signal, use dem height instead.
+    ground_bin = dem_bin.copy() # if ground isn't found in signal, use dem height instead.
     ground_height = np.zeros_like(dem) * np.nan
 
     for i,b in enumerate(ground_identified):
@@ -82,7 +83,7 @@ def get_ground_bin(density, cloud_mask, heights, dem, dem_tol, verbose=False):
             ground_bin[i] = g_bin
     
     if verbose: print('Ground bins found,')
-    ground_height = dem + dh*(ground_bin - dem_bin)
+    ground_height = ground_bin*dh + heights[0]
 
     if flipped: # flip the indices back to the original height-coordinate-orientation
         ground_bin = n_vert - ground_bin - 1
