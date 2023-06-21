@@ -72,6 +72,8 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True, verbos
                 layer_bot[i,layer_n] = heights[j-1]
                 layer_n += 1
                 inCloud = False
+                if layer_n == n_layers:
+                    break
         if inCloud: # if the final bit is in a cloud, correct the number of layers variable and set the cloud bottom to -1000
             layer_bot[i,layer_n] = -1000
             layer_n += 1
