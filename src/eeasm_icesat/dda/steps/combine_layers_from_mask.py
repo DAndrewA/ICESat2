@@ -107,22 +107,21 @@ def combine_layers_from_mask_vectorized(cloud_mask, min_depth=3, min_sep=3, verb
         cloud_mask_layer = cloud_mask[:,j].squeeze()
     
         change_in = ((1 - inCloud) * cloud_mask_layer * np.all(cloud_mask[:,j:j+min_depth] == 1, axis=1).squeeze()).astype(bool)
-        change_out = ((1 - cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j:j+min_depth] == 0, axis=1).squeeze()).astype(bool)
-        inCloud = inCloud + change_in - change_out
-
-        cm_up[j,:] = inCloud
+        change_out = ((1 - cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j:j+min_sep] == 0, axis=1).squeeze()).astype(bool)
+        inCloud = np.logical_xor(inCloud, change_out) + change_in
+        cm_up[:,j] = inCloud
     
-    inCloud = np.zeros((n_prof,))
+    inCloud = np.zeros((n_prof,)).astype(bool)
     # perform the down-pass
     if verbose: print('Performing down-pass.')
     for j in range(n_vert-1,buffer-1,-1):
-        cloud_mask_layer = cloud_mask[:j].squeeze()
+        cloud_mask_layer = cloud_mask[:,j].squeeze()
 
-        change_in = ((1-inCloud) * cloud_mask_layer * np.all(cloud_mask[:,j-min_depth:j] == 1, axis=1).squeeze()).astype(bool)
-        change_out = ((1-cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j-min_sep:j] == 0, axis=1).squeeze()).astype(bool)
+        change_in = ((1-inCloud) * cloud_mask_layer * np.all(cloud_mask[:,j-min_depth+1:j+1] == 1, axis=1).squeeze())
+        change_out = ((1-cloud_mask_layer) * inCloud * np.all(cloud_mask[:,j-min_sep+1:j+1] == 0, axis=1).squeeze())
         inCloud = inCloud + change_in - change_out
-
-        cm_down[:,j-1] = inCloud
+        inCloud = inCloud.astype(bool)
+        cm_down[:,j] = inCloud
 
     layer_mask = np.logical_or(cm_up,cm_down)
     return layer_mask
