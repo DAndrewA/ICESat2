@@ -124,14 +124,14 @@ def dda_atl(data, heights, dem,
     # determine within which signal bins the ground lies
     (ground_bin, ground_height) = steps.get_ground_bin(density1, cloud_mask_combined, heights, dem, dem_tol, verbose=verbose)
 
-    layer_mask_with_ground = steps.combine_layers_from_mask(cloud_mask_combined, verbose=verbose)
+    layer_mask_with_ground = steps.combine_layers_from_mask_vectorized(cloud_mask_combined, verbose=verbose)
 
     if verbose: print('******** Removing ground from signal')
     # remove the ground bins from cloud_mask
     cloud_mask_no_ground, ground_mask = steps.remove_ground_from_mask(layer_mask_with_ground, ground_bin,cloud_mask_combined,ground_width,heights, verbose=verbose)
 
     # create a new layer_mask with the ground signal removed
-    layer_mask = steps.combine_layers_from_mask(cloud_mask_no_ground, verbose=verbose)
+    layer_mask = steps.combine_layers_from_mask_vectorized(cloud_mask_no_ground, verbose=verbose)
 
     if verbose: print('******** Calculating layer boundaries')
     num_cloud_layers, layer_bot, layer_top = steps.get_layer_boundaries(layer_mask,heights, verbose=verbose)
