@@ -5,7 +5,6 @@ Script contaiing the function to replcae values in the data array that are in th
 '''
 
 import numpy as np
-from scipy.stats import norm
 
 def replace_mask_with_noise(data, mask, mean, sd, vmin=0, seed=None, verbose=True):
     '''Function to replace the values denoted by cloud_mask in data with normally distributed noise.
@@ -45,7 +44,7 @@ def replace_mask_with_noise(data, mask, mean, sd, vmin=0, seed=None, verbose=Tru
 
     for i, (p,m,s) in enumerate(zip(mask,mean,sd)):
         num_rand = np.sum(p)
-        rand_vals = norm.rvs(size=num_rand, loc=m, scale=s, random_state=seed)
+        rand_vals = np.random.default_rng(seed).normal(loc=m,scale=s,size=num_rand)
         rand_vals[rand_vals < vmin] = vmin
         noisy_data[i, p] = rand_vals
 
