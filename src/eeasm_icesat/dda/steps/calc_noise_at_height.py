@@ -49,7 +49,7 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
     if verbose: print('==== dda.steps.calc_noise_at_height()')
     (n_prof, n_vert) = data.shape
     # create a mask based on bin altitude above ground level
-    delta_heights = dem.reshape((n_prof,1)) - heights.reshape((1,n_vert))
+    delta_heights = heights.reshape((1,n_vert)) - dem.reshape(n_prof,1)
     altitude_mask = delta_heights >= altitude
     
     # create the final data mask
