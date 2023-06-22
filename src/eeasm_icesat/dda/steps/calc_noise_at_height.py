@@ -48,9 +48,10 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
     '''
     if verbose: print('==== dda.steps.calc_noise_at_height()')
     (n_prof, n_vert) = data.shape
+    new_data = data.copy()
     # create a mask based on bin altitude above ground level
     delta_heights = heights.reshape((1,n_vert)) - dem.reshape(n_prof,1)
-    altitude_mask = delta_heights >= altitude
+    altitude_mask = delta_heights <= altitude
     
     # create the final data mask
     data_mask = np.logical_or(altitude_mask, cloud_mask)
@@ -59,10 +60,11 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
     else:
         data_mask = np.logical_or(data_mask, np.isnan(data))
 
-    data[data_mask] = np.nan
+    new_data[data_mask] = np.nan
 
     # calculate the quantile values for each vertical profile
-    quant_vals = np.nanquantile(data,quantile/100, axis=1)
+    quant_vals = np.nanquantile(new_data,quantile/100, axis=1)
+    del new_data
     if verbose: print(f'{np.max(quant_vals)=}  |  {np.min(quant_vals)=}')
 
     # calculate the profile means and standard deviations
