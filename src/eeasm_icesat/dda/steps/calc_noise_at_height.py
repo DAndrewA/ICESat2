@@ -6,7 +6,7 @@ Script containing function to calculate the noise profile at height of masked da
 
 import numpy as np
 
-def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, include_nans=False, smooth_bins=2):
+def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, include_nans=False, smooth_bins=2, verbose=False):
     '''Function to calculate the noise profile of the ATL09 data from high altitude measurements.
 
     This function calculates the noise by taking the mean and standard deviation of values in the data array that are a certain altitude above the dem and not contained in the cloud_mask from density1. The aim of this is to allow the filling of the cloud mask with noisy values with a reasonable power spectrum.
@@ -35,6 +35,9 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
 
         smooth_bins : int
             Number of profiles either side of a given profile over which a rolling average of mean and sd values are taken.
+
+        verbose : bool
+            Flag for printing debug statements to the log
  
     OUTPUTS:
         mean : np.ndarray
@@ -43,6 +46,7 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
         sd : np.ndarray
             (n,) numpy array containing the smoothed standard deviation value for each vertical profile's noise spectrum.
     '''
+    if verbose: print('==== dda.steps.calc_noise_at_height()')
     (n_prof, n_vert) = data.shape
     # create a mask based on bin altitude above ground level
     delta_heights = dem.reshape((n_prof,1)) - heights.reshape((1,n_vert))
@@ -59,8 +63,10 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
 
     # calculate the quantile values for each vertical profile
     quant_vals = np.nanquantile(data,quantile, axis=1)
+    if verbose: print(f'{np.max(quant_vals)=}  |  {np.min(quant_vals)=}')
 
     # calculate the profile means and standard deviations
+    if verbose: print('Calculating mean and sd')
     mean = np.zeros_like(quant_vals)
     sd = np.zeros_like(quant_vals)
     for i, prof in enumerate(data):
@@ -68,9 +74,10 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
         sd[i] = np.nanstd(prof[prof < quant_vals[i]])
 
     if smooth_bins > 0:
+        if verbose: print('Smoothing mean and sd')
         width = 2*smooth_bins + 1
-        mean = np.convolve(mean, np.ones(width)/width)
-        sd = np.convolve(sd, np.ones(width)/width)
+        mean = np.convolve(mean, np.ones(width)/width, mode='same')
+        sd = np.convolve(sd, np.ones(width)/width, mode='same')
 
     return mean, sd
 
