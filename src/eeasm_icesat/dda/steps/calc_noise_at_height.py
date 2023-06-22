@@ -62,7 +62,7 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
     data[data_mask] = np.nan
 
     # calculate the quantile values for each vertical profile
-    quant_vals = np.nanquantile(data,quantile, axis=1)
+    quant_vals = np.nanquantile(data,quantile/100, axis=1)
     if verbose: print(f'{np.max(quant_vals)=}  |  {np.min(quant_vals)=}')
 
     # calculate the profile means and standard deviations
