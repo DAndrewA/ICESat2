@@ -126,13 +126,15 @@ def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_len
 
     for i, pad in enumerate(pad_vals):
         if pad < 0: # left pad for pad less than zero
-            pad_mat = np.pad(downsample_matrix,((0,0),(-pad,0)),constant_vals=(np.nan))[:,:pad]
+            pad_mat = np.pad(downsample_matrix,((0,0),(-pad,0)),constant_values=(np.nan))[:,:pad]
         else: # paddings greater than 0 are right-padded
-            pad_mat = np.pad(downsample_matrix,((0,0),(0,pad)),constant_vals=(np.nan))[:,pad:]
+            pad_mat = np.pad(downsample_matrix,((0,0),(0,pad)),constant_values=(np.nan))[:,pad:]
 
         density_stacked[:, i*n_vert:(i+1)*n_vert] = pad_mat
 
     thresholds = bias + sensitivity* np.nanquantile(density_stacked,quantile/100,axis=1)
+
+    thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
     return thresholds
 
 
