@@ -23,7 +23,7 @@ def generate_layer_mask_from_layers(layer_bot, layer_top, heights, verbose=False
             Flag for printing debug statements
 
     OUTPUTS:
-        layer_mask : np.ndarray
+        layer_mask : np.ndarray (dtype=bool)
             (n,m) numpy array containing 1s where the clouds exist and 0s where they don't
     '''
     if verbose: print('==== generate_layer_mask_from_layers()')
@@ -55,4 +55,5 @@ def generate_layer_mask_from_layers(layer_bot, layer_top, heights, verbose=False
         heights = np.flip(heights)
         layer_mask = np.flip(layer_mask, axis=1)
 
+    layer_mask = layer_mask.astype(bool)
     return layer_mask
