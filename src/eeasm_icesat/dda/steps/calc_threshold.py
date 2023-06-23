@@ -62,7 +62,7 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
         # extract collums that have independant maximum values per pixel
         quantileData = downsample_matrix[xleft:xright+1:delta,:]
 
-        quantile_value = np.nanquantile(quantileData,quantile/100)
+        quantile_value = np.nanquantile(quantileData,quantile)
         thresholds[xx] = bias + sensitivity*quantile_value
 
     thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
@@ -122,9 +122,11 @@ def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_len
     pad_vals = np.arange(-segment_length,segment_length+1)*delta
     # create the large data array to store all the values for the window
     density_stacked = np.zeros((n_prof, (2*segment_length+1)*n_vert))
+    if verbose: print(pad_vals)
     if verbose: print(f'{density_stacked.shape=}')
 
     for i, pad in enumerate(pad_vals):
+        pad = int(pad)
         if pad < 0: # left pad for pad less than zero
             pad_mat = np.pad(downsample_matrix,((0,0),(-pad,0)),constant_values=(np.nan))[:,:pad]
         else: # paddings greater than 0 are right-padded
@@ -132,10 +134,10 @@ def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_len
 
         density_stacked[:, i*n_vert:(i+1)*n_vert] = pad_mat
 
-    thresholds = bias + sensitivity* np.nanquantile(density_stacked,quantile/100,axis=1)
+    thresholds = bias + sensitivity* np.nanquantile(density_stacked,quantile,axis=1)
 
     thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
-    return thresholds
+    return thresholds, density_stacked
 
 
 def _downsample_matrix(density,downsample, verbose=False):
@@ -157,11 +159,10 @@ def _downsample_matrix(density,downsample, verbose=False):
     '''
     # perform the downsampling first on a profile-by-profile basis
     (n_prof,n_vert) = density.shape
-    downsample_matrix = density
+    downsample_matrix = density.copy()
     
     if downsample > 0:
         if verbose: print('Downsampling matrix.')
-        downsample_matrix = density.copy() # only copy the data if downsampling is required
         for xx in range(n_prof):
             # ensure the indices lie within the bounds of data
             ileft = np.max([0,xx-downsample])

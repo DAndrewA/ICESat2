@@ -56,24 +56,26 @@ def calc_noise_at_height(data, cloud_mask, heights, dem, altitude, quantile, inc
     # create the final data mask
     data_mask = np.logical_or(altitude_mask, cloud_mask)
     if include_nans:
-        data[np.isnan(data)] = 0
+        new_data[np.isnan(new_data)] = 0
     else:
-        data_mask = np.logical_or(data_mask, np.isnan(data))
+        #data_mask = np.logical_or(data_mask, np.isnan(new_data))
+        data_mask[np.isnan(new_data)] = 1
 
     new_data[data_mask] = np.nan
 
     # calculate the quantile values for each vertical profile
-    quant_vals = np.nanquantile(new_data,quantile/100, axis=1)
-    del new_data
+    quant_vals = np.nanquantile(new_data,quantile, axis=1)
     if verbose: print(f'{np.max(quant_vals)=}  |  {np.min(quant_vals)=}')
 
     # calculate the profile means and standard deviations
     if verbose: print('Calculating mean and sd')
     mean = np.zeros_like(quant_vals)
     sd = np.zeros_like(quant_vals)
-    for i, prof in enumerate(data):
+    for i, prof in enumerate(new_data):
         mean[i] = np.nanmean(prof[prof < quant_vals[i]])
         sd[i] = np.nanstd(prof[prof < quant_vals[i]])
+    
+    del new_data
 
     if smooth_bins > 0:
         if verbose: print('Smoothing mean and sd')
