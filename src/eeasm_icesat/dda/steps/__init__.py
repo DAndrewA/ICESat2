@@ -13,4 +13,6 @@ from .remove_ground_from_mask import remove_ground_from_mask
 
 from .calc_noise_at_height import calc_noise_at_height
 from .replace_mask_with_noise import replace_mask_with_noise
+
+from .generate_layer_mask_from_layers import generate_layer_mask_from_layers
 #from .run_pass import run_pass
