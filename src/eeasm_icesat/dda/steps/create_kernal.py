@@ -59,10 +59,14 @@ def Gaussian(sigma_y, sigma_x=None, a_m=None, cutoff=None, n=None, m=None, dx=1,
         n = 2 * np.round(sigma_y/dy * cutoff) + 1
         m = 2 * np.round(sigma_x/dx * cutoff) + 1
 
-    x = np.arange(-m//2, m//2+1)*dx
-    y = np.arange(-n//2, n//2+1)*dy
+    x = np.arange(-(m//2), m//2+1)*dx
+    y = np.arange(-(n//2), n//2+1)*dy
     X,Y = np.meshgrid(y,x) # order reversed due to x,y definition of indices in this library
-    
+    if verbose:
+        print(f'({n=}, {m=})  {X.shape=}')
+        print(f'{x=}')
+        print(f'{y=}')
     gaussian = lambda x,y,sx,sy: np.exp(-0.5 * (np.power(x/sx, 2) + np.power(y/sy, 2)))
-    kernal = gaussian(X,Y,sigma_x,sigma_y)
+    
+    kernal = gaussian(X,Y,sigma_y,sigma_x)
     return kernal / np.sum(kernal) # return the normalised version of the kernal
