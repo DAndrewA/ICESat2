@@ -6,7 +6,7 @@ Script contaiing the function to replcae values in the data array that are in th
 
 import numpy as np
 
-def replace_mask_with_noise(data, mask, mean, sd, vmin=0, seed=None, verbose=True):
+def replace_mask_with_noise(data, mask, mean, sd, vmin=0, seed=None, verbose=False):
     '''Function to replace the values denoted by cloud_mask in data with normally distributed noise.
 
     INPUTS:

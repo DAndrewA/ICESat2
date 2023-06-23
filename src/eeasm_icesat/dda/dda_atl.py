@@ -12,7 +12,7 @@ from . import steps
 def dda_atl(data, heights, dem,
         kernal_args={}, density_args={}, threshold_args={}, 
         kernal_args2={}, density_args2={}, threshold_args2={},
-        min_cluster_size=300, remove_clusters_in_pass=False, fill_clouds_with_noise=True,
+        min_cluster_size=300, remove_clusters_in_pass=False, fill_clouds_with_noise=True, noise_altitude=10000,
         dem_tol=3, ground_width=3,
         verbose=False):
     '''Function to run the full DDA-atmos algorithm on the ATL09 data.
@@ -43,6 +43,12 @@ def dda_atl(data, heights, dem,
 
         remove_clusters_in_pass : bool
             Flag for removing small clusters in cloud_mask[1,2] if True. Otherwise, small clusters will only be removed after the masks have been combined.
+
+        fill_clouds_with_noise : bool
+            Flag to fill in the data within cloud_mask1 with noise before calculating the density2 field.
+
+        noise_altitude : float
+            Altitude above ground level for non-cloud data to be considered noisy.
 
         dem_tol : int
             The number of bins from the dem within which a "cloudy" pixel must fall in to be considered a ground return signal.
@@ -105,10 +111,13 @@ def dda_atl(data, heights, dem,
     kernal2 = steps.create_kernal.Gaussian(**kernal_args2, verbose=verbose)
     # update the data_mask variable to include cloud_mask1.
     if fill_clouds_with_noise:
-        raise NotImplementedError
         # determine what the noise mean and sd are
         # data[cloud_mask1] = np.rand(data.size,mean,sd)[cloud_mask1]
-        density2 = steps.calc_density_field(data,data_mask, kernal2, **density_args2, verbose=verbose)
+        mean, sd = steps.calc_noise_at_height(data, cloud_mask1, heights, dem, noise_altitude, kernal_args['quantile'],verbose=verbose)
+        data_with_noise = steps.replace_mask_with_noise(data,cloud_mask1,mean,sd,verbose=verbose)
+
+        density2 = steps.calc_density_field(data_with_noise ,data_mask, kernal2, **density_args2, verbose=verbose)
+        del data_with_noise
     else:
         data_mask = np.logical_or(data_mask, cloud_mask1)
         density2 = steps.calc_density(data, data_mask, kernal2, density_args2, verbose)
