@@ -54,6 +54,43 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
     if data_mask is not None: # if the data mask is provided, set the masked values to nan. Otherwise, they will have some density value.
         downsample_matrix[data_mask] = np.nan
 
+    thresholds = _threshold_loop(n_prof, downsample, segment_length, downsample_matrix, quantile, bias, sensitivity)
+
+    thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
+    return thresholds
+
+
+
+@numba.jit(nopython=True)
+def _threshold_loop(n_prof, downsample, segment_length, downsample_matrix, quantile, bias, sensitivity):
+    '''Function to implement threshoold calculation loop with Numba JIT compillation
+    
+    INPUTS:
+        n_prof : int
+            integer specifying the number of vertical profiles for thresholds to be calculated for
+
+        downsample : int
+            the value by which the matrix has been downsampled by.
+
+        segment_length : int
+            The length of the segment over which values are used for the quantile calculation
+
+        downsample_matrix : np.ndarray
+            (n,m) matrix containing n vertical profiles of m height bins of data, horizontally downsampled, that will have quantiles caluclated for.
+
+        quantile : float
+            Value between 0 and 100 (%) specifying the quantile to be calculated
+
+        bias : float
+            The constant bias used in the threshold calculation
+
+        sensitivity : float
+            The linear coefficient used in the threshold calculation
+    
+    OUTPUTS:
+        thresholds : np.ndarray
+            (n,) array containing the cloud-threshold for each of the n vertical profiles
+    '''
     thresholds = np.zeros(n_prof)
     for xx in range(n_prof):
         # handle edge cases:
@@ -61,16 +98,16 @@ def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias
         xleft = xx-segment_length*delta
         xright = xx+segment_length*delta
         if xleft < 0 or xright > n_prof-1:
-            xleft = np.max([0,xleft])
-            xright = np.min([xright, n_prof-1])
+            xleft = np.max(np.array([0,xleft]))
+            xright = np.min(np.array([xright, n_prof-1]))
         # extract collums that have independant maximum values per pixel
         quantileData = downsample_matrix[xleft:xright+1:delta,:]
 
         quantile_value = np.nanquantile(quantileData,quantile/100)
         thresholds[xx] = bias + sensitivity*quantile_value
 
-    thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
     return thresholds
+
 
 
 def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, verbose=False, **kwargs):
@@ -140,6 +177,7 @@ def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_len
 
     thresholds = np.expand_dims(thresholds,axis=-1) # set the shape to (n,1) rather than (n,) for broadcasting when calculating cloud_mask
     return thresholds
+
 
 
 #@numba.jit(nopython=True)
