@@ -7,7 +7,7 @@ The function to extract the layer height variables using the consolidated layer 
 import numpy as np
 import numba
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True, verbose=False):
     '''Function to extract the layer boundary heights using the consolidated layer_mask and the heights variable.
     

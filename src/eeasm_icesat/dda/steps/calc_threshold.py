@@ -7,7 +7,7 @@ Function to calculate the cloud layer threshold, given the data matrix, a data m
 import numpy as np
 import numba
 
-@numba.jit(nopython=True)
+#@numba.jit()#nopython=True)
 def calc_threshold(density, data_mask=None, downsample=0, segment_length=5, bias=60, sensitivity=1, quantile=90, verbose=False, **kwargs):
     '''Function to calculate the threshold values for cloud pixels in each vertical profile of the density field.
     
@@ -142,7 +142,7 @@ def calc_threshold_vectorized(density, data_mask=None, downsample=0, segment_len
     return thresholds
 
 
-@numba.jit(nopython=True)
+#@numba.jit(nopython=True)
 def _downsample_matrix(density,downsample, verbose=False):
     '''Funciton to perform the downsampling of the matrix for threshold calculation as used in earlier versions of the ATL09 product.
     
