@@ -156,7 +156,7 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
             # if _FillValue is in the keys, extract the value
             fillValue = None
             if '_FillValue' in attrs:
-                fillValue = attrs['_FillValue'][0]
+                fillValue = attrs['_FillValue']#[0]
 
             # need to subset the coordinates based on which are present in vals
             da_coords = {v: coords[v] for v in axis_names}
