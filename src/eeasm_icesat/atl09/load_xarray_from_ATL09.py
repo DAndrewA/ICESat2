@@ -101,7 +101,7 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
         # add these to the dataset object
         coords = {'profile':profile, 'time_index':time_index, 'height':height, 'layer':layer, 'surface type':surface_type}
         ds = ds.assign_coords(coords)
-        print(ds.dims)
+        if verbose: print(ds.dims)
 
         # ASSUMES NONE OF THE COORDINATES HAVE THE SAME SIZE: REQUIRE THAT time!=700 AND ALL WILL BE FINE... 
         dim_lengths = {v.size: k for k,v in coords.items()}
