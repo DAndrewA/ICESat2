@@ -13,18 +13,18 @@ def add_coordinates(ds, lonlat=None):
     INPUTS:
         ds [xr.Dataset]: xarray dataset containing the ATL09 data
 
-        lonlat: tuple (2); None
-            If not None, a tuple of longitude and latitude to be passed into _add_d2s, given in decimal degrees.
+        lonlat: dict; None
+            If not None, a dictionary of longitude and latitude to be passed into _add_d2s(), given in decimal degrees.
         
     OUTPUTS:
         ds [xr.Dataset]: ATL09 xarray Dataset with the newly added coordinates
     '''
     # sequentially add all additional coordinates
     if lonlat is not None:
-        ds = _add_d2s(ds, *lonlat)
+        ds = _add_d2s(ds, **lonlat)
     else:
         ds = _add_d2s(ds)
-        
+
     ds = _add_height_AGL(ds)
     ds = _add_time(ds)
     return ds
@@ -85,6 +85,7 @@ def _add_height_AGL(ds):
 
 def _add_time(ds):
     '''Function to add time coordinate to ATL09 dataset.
+    NOTE: chnages 10/12/2024 to improve precision on final time values from [s] to [ns]
     
     INPUTS:
         ds [xr.Dataset]: xarray dataset containing the ATL09 data
@@ -93,8 +94,11 @@ def _add_time(ds):
         ds [xr.Dataset]: ATL09 xarray Dataset with the newly added time coordinate
     '''
     time = ds['delta_time']
-    time = time.interpolate_na(dim='time_index',fill_value='extrapolate').astype('timedelta64[s]')
-    epoch = np.datetime64('2018-01-01').astype('datetime64[s]')
-    time = time + epoch
-    ds['time'] = time#.interpolate_na(dim='time_index', fill_value='extrapolate')
+    time = time.interpolate_na(dim='time_index',fill_value='extrapolate')
+    one_second = np.timedelta(1_000_000_000, 'ns')
+
+    epoch = np.datetime64('2018-01-01').astype('datetime64[ns]')
+
+    time = epoch + time*one_second
+    ds['time'] = time.astype('datetime64[ns]')#.interpolate_na(dim='time_index', fill_value='extrapolate')
     return ds.set_coords('time')
