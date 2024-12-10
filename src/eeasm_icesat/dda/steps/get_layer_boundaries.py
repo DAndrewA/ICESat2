@@ -55,7 +55,7 @@ def get_layer_boundaries(layer_mask, heights, n_layers=10, top_down=True, verbos
     # correctly order heights and layer_mask for our analysis
     if (top_down and not desc) or (not top_down and desc):
         layer_mask = np.flip(layer_mask,axis=1)
-        heights = np.flip(heights,axis=1)
+        heights = np.flip(heights)
         print('layer_mask and heights flipped to account for desired direction of layer counting.')
 
     if verbose:print(f'{heights[0]=}  |  {heights[-1]=}')
