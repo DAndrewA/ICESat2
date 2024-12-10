@@ -95,7 +95,7 @@ def _add_time(ds):
     '''
     time = ds['delta_time']
     time = time.interpolate_na(dim='time_index',fill_value='extrapolate')
-    one_second = np.timedelta(1_000_000_000, 'ns')
+    one_second = np.timedelta64(1_000_000_000, 'ns')
 
     epoch = np.datetime64('2018-01-01').astype('datetime64[ns]')
 
