@@ -188,10 +188,15 @@ def extrapolate_var(ds, var, dim, verbose=False):
     nan values in coordinates lead to errors, even when associated data is uniformly nan too
     """
     if verbose: print("="*5 + f" EXTRAPOLATING {var} along {dim} dimension")
-    ds[var] = ds[var].interpolate_na(
+    da = ds[var]
+    dtype = da.dtype
+    da = da.astype(np.float64)
+    da = da.where(da > -9e+18) # replace fill of NaT values with NaN
+
+    ds[var] = da.interpolate_na(
         dim=dim,
         fill_value="extrapolate"
-    )
+    ).astype(dtype)
     if verbose: print("SUCCESS")
     return ds
 
