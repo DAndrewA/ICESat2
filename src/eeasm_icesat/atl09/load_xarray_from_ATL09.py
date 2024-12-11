@@ -298,53 +298,6 @@ def load_rate_by_group(
     return ds
     
 
-def load_xarray_from_groups(
-    fname, 
-    subset_vars_high = None,
-    get_low_rate = True,
-    subset_vars_low = None,
-    verbose: bool = False
-) -> xr.Dataset:
-    """Function to load an xarray dataset from an ATL09 h5 file, utilising the "group" argument in xarrays load_dataset
-    
-    INPUTS:
-        fname: string
-            Full path to the .h5 file containing the ATL09 data to be loaded
-
-        subset_vars_high: None | list[str]
-            A list of strings denoting variable names to keep.
-            If None, all variables from high_rate groups are loaded.
-
-        get_low_rate: bool
-            Flag for if the low-rate dataset should be loaded too.
-
-        subset_vars_low: None | list[str]
-            A list of strings denoting variable names to keep from the low_rate data
-            If None, all variables are loaded
-
-        verbose: bool
-            Flag for verbose printing when loading, for debug purposes
-
-    OUTPUT:
-        ds: xr.Dataset
-            xarray dataset containing data from the high_rate and low_rate groups of each profile_[123] group in the h5 file
-    """
-    ds_high = load_rate_by_group(fname, "high_rate", subset_vars_high, verbose=verbose)
-    ds_high = extrapolate_var(ds_high, "delta_time", "time_index", verbose=verbose)
-
-    if get_low_rate:
-        ds_low = load_rate_by_group(fname, "low_rate", subset_vars_low, verbose=verbose)
-
-        # pad dimension time_index of ds_low to match that of ds_high
-        high_time_len = ds_high.time_index.size
-        low_time_len = ds_low.time_index.size
-        ds_low.pad(
-            pad_width = {
-                "time_index":(0, high_time_len - low_time_len)
-            },
-        )
-
-        ds_low = extrapolate_var(ds_low, "delta_time", "time_index", verbose=verbose)
 
 
 SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm', 'dem_h')
