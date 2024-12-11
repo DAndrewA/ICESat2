@@ -173,6 +173,175 @@ def load_rate(filename,rate,subset,createNan,verbose=False):
         return ds
 
 
+def preproc_delta_time(ds):
+    return ds.rename_dims( # rename dimension to standardise across profiles
+        {'delta_time':'time_index'}
+    ).drop_indexes( # drop the index from delta_time to allow time_index to be an integer index
+        'delta_time'
+    ).reset_coords( # turn delta_time from a coordinate into a variable
+        'delta_time'
+    )
+
+
+def extrapolate_var(ds, var, dim, verbose=False):
+    """Function to extrapolate the values in "delta_time" so that they can be used as coordinates for a given dataset.
+    nan values in coordinates lead to errors, even when associated data is uniformly nan too
+    """
+    if verbose: print("="*5 + f" EXTRAPOLATING {var} along {dim} dimension")
+    ds[var] = ds[var].interpolate_na(
+        dim=dim,
+        fill_value="extrapolate"
+    )
+    if verbose: print("SUCCESS")
+    return ds
+
+
+def load_rate_by_group(
+    fname: str, 
+    rate: str, 
+    subset_vars: None | list[str] = None, 
+    verbose: bool = False
+) -> xr.Dataset:
+    """Function to load either the high_rate or low_rate data from an ATL09 data file
+    
+    INPUTS:
+        fname: str
+            full path to the file from which data will be loaded
+
+        rate: str = "low_rate" | "high_rate"
+            Which rate group from which data will be loaded
+
+        subset_vars: None | list[str]
+            List of variables to keep in the Dataset.
+            None results in all variables being kept.
+
+        verbose: bool
+            Flag for printing for debug purposes
+
+    OUTPUTS:
+        ds: xr.Dataset
+            Xarray dataset containing ATL09 data
+    """
+
+    if verbose: 
+        print("="*10 + f" LOADING {os.path.basename(fname)}: {rate}")
+        print("Loading individual profiles...", end="")
+    ds_rate_list = [
+        xr.open_dataset(
+            fname,
+            group=f"/profile_{p}/{rate}"
+        )
+        for p in [1,2,3]
+    ]
+    if verbose: 
+        print("SUCCESS")
+        print("Preprocessing delta_time -> time_index...",end="")
+
+    ds_rate_list = [
+        preproc_delta_time(ds)
+        for ds in ds_rate_list
+    ]
+    if verbose: print("SUCCESS") 
+
+    longest_time_dim = np.max([
+        ds.time_index.size
+        for ds in ds_rate_list
+    ])
+    pad_sizes = [
+        longest_time_dim - ds.time_index.size
+        for ds in ds_rate_list
+    ]
+    if verbose: print(f"{pad_sizes=}")
+
+    if subset_vars is not None:
+        ds_rate_list = [
+            ds[subset_vars]
+            for ds in ds_rate_list
+        ]
+        if verbose: 
+            print(f"VARS SUBSET")
+            print(subset_vars)
+            print("SUCCESS")
+
+    
+    ds_rate_list = [
+        ds.pad(
+            pad_width = {
+                'time_index': (0, ps)
+            },
+            #mode='maximum' # TODO: remove line if extrapolation of delta_time is succesful
+        )
+        for ds, ps in zip(ds_rate_list, pad_sizes)
+    ]
+    print("PADDING SUCCESS")
+
+    ds_rate_list = [
+        extrapolate_var(ds, "delta_time", "time_index")
+        for ds in ds_rate_list
+    ]
+
+    ds = xr.concat(
+        ds_rate_list, dim="profile"
+    ).assign_coords(
+        {
+            "profile": ( ("profile",), [1,2,3] )
+        }
+    ).set_coords(
+        "delta_time"
+    )
+
+    return ds
+    
+
+def load_xarray_from_groups(
+    fname, 
+    subset_vars_high = None,
+    get_low_rate = True,
+    subset_vars_low = None,
+    verbose: bool = False
+) -> xr.Dataset:
+    """Function to load an xarray dataset from an ATL09 h5 file, utilising the "group" argument in xarrays load_dataset
+    
+    INPUTS:
+        fname: string
+            Full path to the .h5 file containing the ATL09 data to be loaded
+
+        subset_vars_high: None | list[str]
+            A list of strings denoting variable names to keep.
+            If None, all variables from high_rate groups are loaded.
+
+        get_low_rate: bool
+            Flag for if the low-rate dataset should be loaded too.
+
+        subset_vars_low: None | list[str]
+            A list of strings denoting variable names to keep from the low_rate data
+            If None, all variables are loaded
+
+        verbose: bool
+            Flag for verbose printing when loading, for debug purposes
+
+    OUTPUT:
+        ds: xr.Dataset
+            xarray dataset containing data from the high_rate and low_rate groups of each profile_[123] group in the h5 file
+    """
+    ds_high = load_rate_by_group(fname, "high_rate", subset_vars_high, verbose=verbose)
+    ds_high = extrapolate_var(ds_high, "delta_time", "time_index", verbose=verbose)
+
+    if get_low_rate:
+        ds_low = load_rate_by_group(fname, "low_rate", subset_vars_low, verbose=verbose)
+
+        # pad dimension time_index of ds_low to match that of ds_high
+        high_time_len = ds_high.time_index.size
+        low_time_len = ds_low.time_index.size
+        ds_low.pad(
+            pad_width = {
+                "time_index":(0, high_time_len - low_time_len)
+            },
+        )
+
+        ds_low = extrapolate_var(ds_low, "delta_time", "time_index", verbose=verbose)
+
+
 SUBSET_DEFAULT = ('delta_time','ds_va_bin_h','latitude','longitude','cab_prof','surface_height','layer_top','layer_bot', 'cloud_flag_atm', 'dem_h')
 SUBSET_CLOUDS = (*SUBSET_DEFAULT,'apparent_surf_reflec','asr_cloud_probability','cloud_flag_asr','cloud_flag_atm','cloud_fold_flag','ds_layers','layer_attr','layer_bot','layer_con','layer_conf_dens','layer_dens','layer_flag','layer_top','msw_flag')
 
