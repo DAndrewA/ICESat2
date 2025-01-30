@@ -1,0 +1,12 @@
+[project]
+name="eeasm_icesat"
+description = "Package for handling ICESat-2 ATL09 data"
+authors = [{name="Andrew Martin"}]
+#readme="README.md"
+#license = {file = "LICENSE"} # placeholder
+#requires-python = ">=3.10" # placeholder
+dependencies = [] # placeholder
+dynamic=["version"]
+
+[tool.setuptools.packages]
+find = {}
